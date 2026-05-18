@@ -21,7 +21,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { formatUnits, type Address } from 'viem'
 import './App.css'
@@ -51,8 +51,76 @@ const shellNav = [
   ['Arc Tape', '/app/transactions', false],
 ] as const
 
+type ToastTone = 'success' | 'warning' | 'error' | 'info'
+
+type ToastMessage = {
+  id: number
+  tone: ToastTone
+  title: string
+  detail?: string
+}
+
+type ToastInput = Omit<ToastMessage, 'id'> & {
+  durationMs?: number
+}
+
+type Notify = (toast: ToastInput) => void
+
 function formatAddress(value: string) {
   return `${value.slice(0, 6)}...${value.slice(-4)}`
+}
+
+function formatHash(value: string) {
+  return value.length > 14 ? formatAddress(value) : value
+}
+
+function toastIcon(tone: ToastTone) {
+  if (tone === 'success') {
+    return <CheckCircle2 size={18} />
+  }
+  if (tone === 'error') {
+    return <AlertTriangle size={18} />
+  }
+  if (tone === 'warning') {
+    return <PauseCircle size={18} />
+  }
+  return <Sparkles size={18} />
+}
+
+function useToasts() {
+  const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const nextId = useRef(0)
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id))
+  }, [])
+
+  const notify = useCallback((toast: ToastInput) => {
+    const id = (nextId.current += 1)
+    setToasts((current) => [...current.slice(-3), { ...toast, id }])
+    window.setTimeout(() => dismissToast(id), toast.durationMs ?? 5200)
+  }, [dismissToast])
+
+  return { toasts, notify, dismissToast }
+}
+
+function ToastStack({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: number) => void }) {
+  return (
+    <div className="toast-stack" role="status" aria-live="polite" aria-relevant="additions text">
+      {toasts.map((toast) => (
+        <article className={`toast-card ${toast.tone}`} key={toast.id}>
+          <div className="toast-icon">{toastIcon(toast.tone)}</div>
+          <div>
+            <b>{toast.title}</b>
+            {toast.detail && <p>{toast.detail}</p>}
+          </div>
+          <button type="button" aria-label="Dismiss notification" onClick={() => onDismiss(toast.id)}>
+            <X size={16} />
+          </button>
+        </article>
+      ))}
+    </div>
+  )
 }
 
 function formatMaybePercent(value: number | null | undefined) {
@@ -208,7 +276,6 @@ function Shell({
         </div>
       </div>
 
-      {wallet.message && <div className={`wallet-message ${wallet.status}`}>{wallet.message}</div>}
       {children}
     </main>
   )
@@ -337,12 +404,29 @@ function SetupPanel({ errors }: { errors: string[] }) {
 function AppLayout({
   children,
   live,
+  notify,
 }: {
   children: ReactNode
   live: ReturnType<typeof useBondMirrorState>
+  notify: Notify
 }) {
   const data = live.data
   const errors = [...setupProblems(), ...(data?.errors ?? []), ...(live.status === 'error' && live.error ? [live.error] : [])]
+
+  async function refreshWithToast() {
+    notify({
+      tone: 'info',
+      title: 'Refreshing live data',
+      detail: 'Reading Arc, mandates, Hyperliquid, and Polymarket.',
+      durationMs: 2400,
+    })
+    await live.refresh()
+    notify({
+      tone: 'success',
+      title: 'Live data refreshed',
+      detail: 'BondMirror state has been reloaded.',
+    })
+  }
 
   return (
     <section className="app-shell">
@@ -354,7 +438,7 @@ function AppLayout({
             {label}
           </NavLink>
         ))}
-        <button className="refresh-button" type="button" onClick={() => void live.refresh()}>
+        <button className="refresh-button" type="button" onClick={() => void refreshWithToast()}>
           <RefreshCw size={16} />
           {live.status === 'loading' ? 'Loading' : 'Refresh live data'}
         </button>
@@ -628,7 +712,7 @@ function RiskAgent({ strategy }: { strategy?: StrategyView }) {
   )
 }
 
-function PublishLeaderPage({ account, onRefresh }: { account?: Address; onRefresh: () => void }) {
+function PublishLeaderPage({ account, onRefresh, notify }: { account?: Address; onRefresh: () => void; notify: Notify }) {
   const [displayName, setDisplayName] = useState('Arc Bonded Crypto Leader')
   const [strategy, setStrategy] = useState('BTC/ETH momentum with Polymarket event hedges')
   const [hyperliquidUser, setHyperliquidUser] = useState('')
@@ -644,7 +728,6 @@ function PublishLeaderPage({ account, onRefresh }: { account?: Address; onRefres
   const [drawdownSlash, setDrawdownSlash] = useState(20)
   const [shiftSlash, setShiftSlash] = useState(15)
   const [externalMandateURI, setExternalMandateURI] = useState('')
-  const [message, setMessage] = useState('')
   const [isPublishing, setIsPublishing] = useState(false)
 
   const mandate = useMemo(() => {
@@ -692,31 +775,44 @@ function PublishLeaderPage({ account, onRefresh }: { account?: Address; onRefres
   async function publish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!account) {
-      setMessage('Connect a leader wallet from the top bar before publishing.')
+      notify({
+        tone: 'warning',
+        title: 'Connect leader wallet',
+        detail: 'The connected wallet becomes the onchain leader for this strategy.',
+      })
       return
     }
 
     try {
       setIsPublishing(true)
-      setMessage('Submitting createStrategy() to Arc...')
+      notify({
+        tone: 'info',
+        title: 'Publishing strategy',
+        detail: 'Confirm createStrategy() and the optional USDC bond stake in your wallet.',
+        durationMs: 4200,
+      })
       const result = await createLeaderStrategy(account, {
         mandateURI: activeMandateURI,
         benchmark,
         slashRules: mandate.slashRules,
         stakeAmountUsdc: bondAmount,
       })
-      setMessage(
-        [
-          `Strategy ${result.strategyId.toString()} published.`,
-          `createStrategy: ${result.createHash}`,
-          result.stakeHash ? `stakeBond: ${result.stakeHash}` : undefined,
-        ]
-          .filter(Boolean)
-          .join(' '),
-      )
+      notify({
+        tone: 'success',
+        title: `Strategy ${result.strategyId.toString()} published`,
+        detail: result.stakeHash
+          ? `createStrategy ${formatHash(result.createHash)} and stakeBond ${formatHash(result.stakeHash)} confirmed.`
+          : `createStrategy ${formatHash(result.createHash)} confirmed.`,
+        durationMs: 7600,
+      })
       onRefresh()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Leader publish failed.')
+      notify({
+        tone: 'error',
+        title: 'Leader publish failed',
+        detail: error instanceof Error ? error.message : 'The Arc transaction was not submitted.',
+        durationMs: 7200,
+      })
     } finally {
       setIsPublishing(false)
     }
@@ -809,7 +905,6 @@ function PublishLeaderPage({ account, onRefresh }: { account?: Address; onRefres
           <ShieldCheck size={16} />
           {isPublishing ? 'Publishing on Arc' : 'Publish bonded strategy'}
         </button>
-        {message && <p className="action-message">{message}</p>}
       </form>
 
       <aside className="profile-panel publish-preview">
@@ -843,22 +938,48 @@ function PublishLeaderPage({ account, onRefresh }: { account?: Address; onRefres
   )
 }
 
-function FollowPage({ strategy, account, onRefresh, isLoading }: { strategy?: StrategyView; account?: Address; onRefresh: () => void; isLoading: boolean }) {
+function FollowPage({
+  strategy,
+  account,
+  onRefresh,
+  isLoading,
+  notify,
+}: {
+  strategy?: StrategyView
+  account?: Address
+  onRefresh: () => void
+  isLoading: boolean
+  notify: Notify
+}) {
   const [capital, setCapital] = useState(500)
   const [maxLoss, setMaxLoss] = useState(5)
   const [mode, setMode] = useState<'manual' | 'assisted' | 'auto'>('assisted')
   const [stakeAmount, setStakeAmount] = useState(100)
-  const [actionMessage, setActionMessage] = useState('')
   const suggestedWeight = strategy ? Math.round((capital * strategy.risk.copyWeight) / 100) : 0
 
   async function runAction(action: () => Promise<unknown>, label: string) {
     try {
-      setActionMessage(`${label} submitted...`)
+      notify({
+        tone: 'info',
+        title: `${label} requested`,
+        detail: 'Confirm the wallet prompt, then Arc Testnet will settle the transaction.',
+        durationMs: 4200,
+      })
       const result = await action()
-      setActionMessage(typeof result === 'string' ? `${label}: ${result}` : `${label} submitted on Arc.`)
+      notify({
+        tone: 'success',
+        title: `${label} submitted on Arc`,
+        detail: typeof result === 'string' ? `Transaction ${formatHash(result)} confirmed.` : 'Transaction submitted successfully.',
+        durationMs: 6800,
+      })
       onRefresh()
     } catch (error) {
-      setActionMessage(error instanceof Error ? error.message : `${label} failed`)
+      notify({
+        tone: 'error',
+        title: `${label} failed`,
+        detail: error instanceof Error ? error.message : 'The transaction could not be submitted.',
+        durationMs: 7200,
+      })
     }
   }
 
@@ -931,7 +1052,6 @@ function FollowPage({ strategy, account, onRefresh, isLoading }: { strategy?: St
           <ShieldCheck size={16} />
           Approve USDC and stake bond
         </button>
-        {actionMessage && <p className="action-message">{actionMessage}</p>}
           </>
         )}
       </section>
@@ -1130,67 +1250,105 @@ function NotFoundPage() {
 function App() {
   const live = useBondMirrorState()
   const { wallet, connect, disconnect } = useWalletSession()
+  const { toasts, notify, dismissToast } = useToasts()
   const [selectedId, setSelectedId] = useState<string>()
   const data = live.data
   const strategies = data?.strategies ?? []
   const selectedStrategy = strategies.find((strategy) => strategy.id.toString() === selectedId) ?? strategies[0]
   const isInitialLoading = live.status === 'loading' && !data
 
+  async function connectWithToast() {
+    notify({
+      tone: 'info',
+      title: 'Wallet approval requested',
+      detail: 'Approve the connection in your wallet.',
+      durationMs: 3200,
+    })
+
+    try {
+      const address = await connect()
+      notify({
+        tone: 'success',
+        title: 'Wallet connected on Arc Testnet',
+        detail: formatAddress(address),
+      })
+    } catch (error) {
+      notify({
+        tone: 'error',
+        title: 'Wallet connection failed',
+        detail: error instanceof Error ? error.message : 'The wallet did not connect.',
+        durationMs: 7200,
+      })
+    }
+  }
+
+  function disconnectWithToast() {
+    disconnect()
+    notify({
+      tone: 'warning',
+      title: 'Wallet disconnected',
+      detail: 'Arc actions are paused until a wallet reconnects.',
+    })
+  }
+
   return (
-    <Shell wallet={wallet} connectWallet={() => void connect()} disconnectWallet={disconnect}>
-      <Routes>
-        <Route path="/" element={<LandingPage wallet={wallet} />} />
-        <Route
-          path="/app"
-          element={
-            <AppLayout live={live}>
-              <DashboardPage strategies={strategies} transactions={data?.transactions ?? []} selectedStrategy={selectedStrategy} isLoading={isInitialLoading} />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/app/leaders"
-          element={
-            <AppLayout live={live}>
-              <LeadersPage strategies={strategies} selectedStrategy={selectedStrategy} setSelectedId={setSelectedId} isLoading={isInitialLoading} />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/app/publish"
-          element={
-            <AppLayout live={live}>
-              <PublishLeaderPage account={wallet.address} onRefresh={live.refresh} />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/app/follow"
-          element={
-            <AppLayout live={live}>
-              <FollowPage strategy={selectedStrategy} account={wallet.address} onRefresh={live.refresh} isLoading={isInitialLoading} />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/app/attestations"
-          element={
-            <AppLayout live={live}>
-              <AttestationsPage attestations={data?.attestations ?? []} isLoading={isInitialLoading} />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/app/transactions"
-          element={
-            <AppLayout live={live}>
-              <TransactionsPage transactions={data?.transactions ?? []} isLoading={isInitialLoading} />
-            </AppLayout>
-          }
-        />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </Shell>
+    <>
+      <Shell wallet={wallet} connectWallet={() => void connectWithToast()} disconnectWallet={disconnectWithToast}>
+        <Routes>
+          <Route path="/" element={<LandingPage wallet={wallet} />} />
+          <Route
+            path="/app"
+            element={
+              <AppLayout live={live} notify={notify}>
+                <DashboardPage strategies={strategies} transactions={data?.transactions ?? []} selectedStrategy={selectedStrategy} isLoading={isInitialLoading} />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/app/leaders"
+            element={
+              <AppLayout live={live} notify={notify}>
+                <LeadersPage strategies={strategies} selectedStrategy={selectedStrategy} setSelectedId={setSelectedId} isLoading={isInitialLoading} />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/app/publish"
+            element={
+              <AppLayout live={live} notify={notify}>
+                <PublishLeaderPage account={wallet.address} onRefresh={live.refresh} notify={notify} />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/app/follow"
+            element={
+              <AppLayout live={live} notify={notify}>
+                <FollowPage strategy={selectedStrategy} account={wallet.address} onRefresh={live.refresh} isLoading={isInitialLoading} notify={notify} />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/app/attestations"
+            element={
+              <AppLayout live={live} notify={notify}>
+                <AttestationsPage attestations={data?.attestations ?? []} isLoading={isInitialLoading} />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/app/transactions"
+            element={
+              <AppLayout live={live} notify={notify}>
+                <TransactionsPage transactions={data?.transactions ?? []} isLoading={isInitialLoading} />
+              </AppLayout>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Shell>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
+    </>
   )
 }
 
