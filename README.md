@@ -100,13 +100,13 @@ POLYMARKET_BUILDER_CODE=0xYourPolymarketBuilderCode
 
 Vercel calls the cron endpoint with `Authorization: Bearer $CRON_SECRET`. The service role key must stay server-side only; do not add it as a `VITE_` variable.
 
-The current schedule is every five minutes:
+The current schedule is daily at 08:00 UTC:
 
 ```json
-{ "path": "/api/cron/risk-agent", "schedule": "*/5 * * * *" }
+{ "path": "/api/cron/risk-agent", "schedule": "0 8 * * *" }
 ```
 
-If your Vercel plan only supports daily cron jobs, change the schedule to something like `0 8 * * *` for the hackathon deployment.
+This schedule works on Vercel Hobby and Pro. For a more live production monitor, switch it back to a shorter interval on a plan that supports frequent cron jobs.
 
 ## Deploy The Arc Contract
 
