@@ -28,6 +28,13 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 *::selection {
   background: var(--ink);
   color: var(--paper);
@@ -52,6 +59,30 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button,
+a,
+p,
+span,
+small,
+b,
+strong,
+h1,
+h2,
+h3,
+label,
+input,
+textarea,
+pre,
+code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+svg {
+  flex-shrink: 0;
 }
 
 button,

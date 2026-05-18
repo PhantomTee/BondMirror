@@ -857,7 +857,7 @@ function PublishLeaderPage({ account, onRefresh, notify }: { account?: Address; 
         </div>
         <label>
           <span>Allowed markets</span>
-          <input value={markets} type="text" onChange={(event) => setMarkets(event.target.value)} />
+          <textarea value={markets} rows={2} onChange={(event) => setMarkets(event.target.value)} />
         </label>
         <div className="field-grid compact">
           <label>
