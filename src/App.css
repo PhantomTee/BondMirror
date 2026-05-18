@@ -1174,6 +1174,44 @@ textarea:focus {
 .attestation p { color: var(--ink); font-weight: 700; margin: 2px 0; }
 .attestation b { color: var(--ink); text-align: right; }
 
+.evidence-summary {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.evidence-detail,
+.evidence-source {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.evidence-detail {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.evidence-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.evidence-meta span {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(10, 37, 64, 0.22);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 5px 8px;
+}
+
 /* === EMPTY STATE === */
 .empty-state {
   align-items: flex-start;

@@ -6,6 +6,7 @@ import { fetchHyperliquidSummary } from './hyperliquid'
 import { loadMandate } from './mandate'
 import { fetchPolymarketSummary } from './polymarket'
 import { scoreStrategy } from './risk'
+import { summarizeEvidenceUri } from './evidence'
 
 type StrategyTuple = readonly [
   Address,
@@ -184,7 +185,7 @@ async function loadTransactions(fromBlock: bigint, latestBlock: bigint): Promise
   const createdEvents = created as unknown as EventWithArgs<{ leader?: Address; strategyId?: bigint }>[]
   const bondedEvents = bonded as unknown as EventWithArgs<{ strategyId?: bigint; amount?: bigint }>[]
   const subscribedEvents = subscribed as unknown as EventWithArgs<{ strategyId?: bigint; follower?: Address; weight?: bigint }>[]
-  const attestedEvents = attested as unknown as EventWithArgs<{ condition?: `0x${string}`; slashBps?: number }>[]
+  const attestedEvents = attested as unknown as EventWithArgs<{ strategyId?: bigint; condition?: `0x${string}`; slashBps?: number; evidenceURI?: string }>[]
   const slashedEvents = slashed as unknown as EventWithArgs<{ strategyId?: bigint; amount?: bigint }>[]
   const claimedEvents = claimed as unknown as EventWithArgs<{ strategyId?: bigint; follower?: Address; amount?: bigint }>[]
 
@@ -218,7 +219,7 @@ async function loadTransactions(fromBlock: bigint, latestBlock: bigint): Promise
       type: 'attestation' as const,
       actor: 'BondMirror risk agent',
       amount: `${Number(event.args.slashBps ?? 0) / 100}% slash`,
-      detail: `Evidence recorded for ${conditionLabel(event.args.condition ?? '0x0')}`,
+      detail: `Strategy ${event.args.strategyId?.toString() ?? ''}: ${summarizeEvidenceUri(event.args.evidenceURI ?? '', conditionLabel(event.args.condition ?? '0x0')).condition}`,
       blockNumber: event.blockNumber,
     })),
     ...slashedEvents.map((event) => ({

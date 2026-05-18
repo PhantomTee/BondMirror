@@ -30,6 +30,7 @@ import { useBondMirrorState } from './hooks/useBondMirrorState'
 import { useWalletSession } from './hooks/useWalletSession'
 import { claimCompensation, createLeaderStrategy, stakeBond, subscribeFollower } from './services/wallet'
 import { supabaseStatus } from './services/supabase'
+import { formatReferenceUri, formatShortValue, summarizeEvidenceUri } from './services/evidence'
 import type { ArcTransactionView, AttestationView, RiskDecision, SlashRisk, StrategyView, WalletSession } from './types'
 
 const appNav = [
@@ -128,6 +129,10 @@ function formatMaybePercent(value: number | null | undefined) {
     return 'live n/a'
   }
   return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
+}
+
+function formatMandateReference(uri: string) {
+  return uri.startsWith('data:application/json') ? 'Generated JSON mandate' : formatReferenceUri(uri, 'mandate')
 }
 
 function statusLabel(status: RiskDecision['status']) {
@@ -473,7 +478,7 @@ function LeaderCard({ strategy, selected, onSelect }: { strategy: StrategyView; 
             <strong>{name}</strong>
             <span className={`pill ${riskTone(strategy.risk.slashRisk)}`}>{strategy.risk.slashRisk} slash risk</span>
           </div>
-          <p>{strategy.mandate?.strategy ?? `Mandate: ${strategy.mandateURI}`}</p>
+          <p>{strategy.mandate?.strategy ?? formatMandateReference(strategy.mandateURI)}</p>
           <span className="source-line">{platforms}</span>
         </div>
       </div>
@@ -1171,20 +1176,34 @@ function AttestationsPage({ attestations, isLoading }: { attestations: Attestati
         <LoadingPanel title="Loading attestations" detail="Reading risk-agent evidence recorded on Arc." />
       ) : attestations.length ? (
         <div className="attestation-list">
-          {attestations.map((item) => (
-            <article className={`attestation ${item.slashPercent ? 'violation' : 'success'}`} key={`${item.strategyId.toString()}-${item.createdAt.toISOString()}`}>
-              <div className="attestation-icon">{item.slashPercent ? <PauseCircle size={18} /> : <CheckCircle2 size={18} />}</div>
-              <div>
-                <div className="row-title">
-                  <strong>Strategy {item.strategyId.toString()}</strong>
-                  <span>{item.createdAt.toLocaleString()}</span>
+          {attestations.map((item) => {
+            const evidence = summarizeEvidenceUri(item.evidenceURI, item.condition)
+            const tags = [...evidence.tags, `Agent ${formatShortValue(item.agent, 8, 6)}`]
+
+            return (
+              <article className={`attestation ${item.slashPercent ? 'violation' : 'success'}`} key={`${item.strategyId.toString()}-${item.createdAt.toISOString()}`}>
+                <div className="attestation-icon">{item.slashPercent ? <PauseCircle size={18} /> : <CheckCircle2 size={18} />}</div>
+                <div>
+                  <div className="row-title">
+                    <strong>Strategy {item.strategyId.toString()}</strong>
+                    <span>{item.createdAt.toLocaleString()}</span>
+                  </div>
+                  <p>{evidence.condition}</p>
+                  <div className="evidence-summary">
+                    {evidence.displayName && <span className="evidence-source">{evidence.displayName}</span>}
+                    <span className="evidence-detail">{evidence.detail}</span>
+                    <div className="evidence-meta">
+                      {tags.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
+                    </div>
+                    <span className="evidence-source">{evidence.source}</span>
+                  </div>
                 </div>
-                <p>{item.condition}</p>
-                <span>{item.evidenceURI}</span>
-              </div>
-              <b>{item.slashPercent ? `${item.slashPercent}% slash` : 'No slash'}</b>
-            </article>
-          ))}
+                <b>{item.slashPercent ? `${item.slashPercent}% slash` : 'No slash'}</b>
+              </article>
+            )
+          })}
         </div>
       ) : (
         <EmptyState title="No attestations on Arc yet" detail="Run the risk agent script with a deployed contract to record real evidence." />
