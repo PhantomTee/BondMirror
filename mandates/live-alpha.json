@@ -1,0 +1,26 @@
+{
+  "displayName": "Live ETH Whale + Crypto Event Proxy",
+  "strategy": "Hyperliquid ETH perp monitoring with Polymarket crypto-event signal attribution",
+  "hyperliquidUser": "0x6C8512516Ce5669d35113A11Ca8B8DE322fD84F6",
+  "polymarketProxy": "0x84ad9c5c547a82ec9a08547b94bd922446e5bfb7",
+  "markets": ["ETH-PERP", "BTC-PERP", "Polymarket crypto events"],
+  "maxLeverage": 3,
+  "maxDrawdown": 0.12,
+  "maxPositionSize": 0.2,
+  "cooldownHours": 24,
+  "benchmark": "50% ETH + 50% USDC",
+  "slashRules": [
+    {
+      "condition": "leverage_above_max",
+      "slashPercent": 0.1
+    },
+    {
+      "condition": "drawdown_above_max",
+      "slashPercent": 0.2
+    },
+    {
+      "condition": "unannounced_strategy_shift",
+      "slashPercent": 0.15
+    }
+  ]
+}

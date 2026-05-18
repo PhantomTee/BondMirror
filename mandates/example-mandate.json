@@ -1,0 +1,26 @@
+{
+  "displayName": "Your Leader Name",
+  "strategy": "BTC/ETH momentum with Polymarket event hedges",
+  "hyperliquidUser": "0x0000000000000000000000000000000000000000",
+  "polymarketProxy": "0x0000000000000000000000000000000000000000",
+  "markets": ["BTC-PERP", "ETH-PERP", "Polymarket crypto events"],
+  "maxLeverage": 3,
+  "maxDrawdown": 0.12,
+  "maxPositionSize": 0.2,
+  "cooldownHours": 24,
+  "benchmark": "50% BTC + 50% USDC",
+  "slashRules": [
+    {
+      "condition": "leverage_above_max",
+      "slashPercent": 0.1
+    },
+    {
+      "condition": "drawdown_above_max",
+      "slashPercent": 0.2
+    },
+    {
+      "condition": "unannounced_strategy_shift",
+      "slashPercent": 0.15
+    }
+  ]
+}

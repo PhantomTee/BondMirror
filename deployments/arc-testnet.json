@@ -1,0 +1,27 @@
+{
+  "network": "Arc Testnet",
+  "chainId": 5042002,
+  "rpcUrl": "https://rpc.testnet.arc.network",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "bondMirrorBond": "0x5027d79086a32d8462b499fb8e0e4d959497c966",
+  "fromBlock": "42695853",
+  "deployer": "0x8eA4D085C19dEA44C5Ae54022AaBffFcE7Ca93D3",
+  "riskAgent": "0x8eA4D085C19dEA44C5Ae54022AaBffFcE7Ca93D3",
+  "strategyId": "1",
+  "leader": "0x8eA4D085C19dEA44C5Ae54022AaBffFcE7Ca93D3",
+  "follower": "0x6eEeCa4eaBCc5e2c8AE192CE2E0ED6F769f540D5",
+  "hyperliquidUser": "0x6C8512516Ce5669d35113A11Ca8B8DE322fD84F6",
+  "polymarketProxy": "0x84ad9c5c547a82ec9a08547b94bd922446e5bfb7",
+  "polymarketBuilderCode": "0x252144110aada39bba1fa4e5531f483ab5fb8013501ecbab39547fcc2d16093d",
+  "transactions": {
+    "deploy": "0xb432388e7d8a2bdf2ef96a951435d0e646d31b770d092c7f4324c43c18f3f7cc",
+    "createStrategy": "0x7b54adc29bc7b19842ce515127212f83360ecc1d423dc41ef1ea5b9c4a550b56",
+    "approveBond": "0xfe9273f5141bea615b54e20dabcaafab67b93c0d0e4766cf74afdb7c7c69d104",
+    "stakeBond": "0xa5c3cc6bf59d71f41d5650bb804e5903b5e5af05f57307f82ff5e655c2442617",
+    "fundFollower": "0xf7bb0b6d830d4b9efa17f55412a1168cff6fa3b13f3011b952343fa2c0e2de5e",
+    "subscribeFollower": "0xe3ae3f9639ba908a18ed6b961e7c2abfb1b7c5f77f66a123810da8c5e77ba27e",
+    "recordAttestation": "0x0a1ce45e8e0cffe6208f2b4299d207c2864a25bc7cb5a41cfbc84ca04e06d931",
+    "slashBond": "0x13a02cd9e8b790b75e35b86b52c168a771cb808941d26ec20015da7a3ab3c1f8",
+    "claimCompensation": "0x8dbbb6d5784ccd6de41c39962fc2397ac39b54f8a94e479a2abfaf41946536dd"
+  }
+}
