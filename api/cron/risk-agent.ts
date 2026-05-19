@@ -280,7 +280,7 @@ async function recordAttestationOnchain(params: {
 
 export async function runRiskAgent() {
   const rpcUrl = process.env.ARC_RPC_URL ?? process.env.VITE_ARC_RPC_URL ?? DEFAULT_ARC_RPC_URL
-  const contract = optionalAddress(process.env.BONDMIRROR_CONTRACT_ADDRESS ?? process.env.VITE_BONDMIRROR_CONTRACT_ADDRESS)
+  const contract = optionalAddress((process.env.BONDMIRROR_CONTRACT_ADDRESS ?? process.env.VITE_BONDMIRROR_CONTRACT_ADDRESS)?.trim())
   if (!contract) {
     throw new Error('Missing BONDMIRROR_CONTRACT_ADDRESS')
   }
