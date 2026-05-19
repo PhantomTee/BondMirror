@@ -841,7 +841,7 @@ button,
 
 .grid-area,
 .grid-area.lower { grid-template-columns: 1fr; }
-.workspace        { grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.55fr); }
+.workspace        { grid-template-columns: 1fr; }
 .follow-layout    { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); }
 .leader-publish-layout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
 
@@ -890,9 +890,9 @@ button,
   color: inherit;
   cursor: pointer;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(118px, 150px);
-  padding: 14px;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 2fr) minmax(140px, 180px);
+  padding: 18px 22px;
   text-align: left;
   transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
   width: 100%;
@@ -916,9 +916,9 @@ button,
 
 .row-title { flex-wrap: wrap; gap: 8px; min-width: 0; }
 
-.row-title strong { color: var(--ink); font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.row-title strong { color: var(--ink); font-size: 17px; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; word-break: break-word; }
 
-.source-line { display: inline-block; font-size: 12px; margin-top: 5px; }
+.source-line { display: inline-block; font-size: 12px; margin-top: 5px; overflow-wrap: anywhere; word-break: break-all; }
 
 /* === PILLS === */
 .pill {
@@ -940,7 +940,7 @@ button,
 .pill.bad  { background: var(--bad);  }
 
 /* === PROFILE === */
-.leader-stats,
+.leader-stats { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(110px, 1fr)); }
 .profile-metrics,
 .portfolio-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
@@ -959,7 +959,7 @@ button,
 .live-score strong { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
 .live-score span   { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
 
-.profile-panel { position: sticky; top: 98px; }
+.profile-panel { position: static; }
 
 .profile-head h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 .profile-head p  { font-size: 13px; overflow-wrap: anywhere; }
@@ -1093,12 +1093,14 @@ textarea:focus {
 .copy-ticket { background: var(--sky-soft); border-radius: 8px; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; padding: 14px; }
 .copy-ticket b { color: var(--ink); display: block; font-weight: 700; }
 
-.action-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 16px 0; }
+.action-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 18px 0; }
 
 .action-grid button,
 .wide-action { background: var(--ink); color: var(--paper); }
 
-.wide-action { width: 100%; }
+.action-grid button { min-height: 52px; font-size: 14px; padding: 0 22px; }
+
+.wide-action { min-height: 52px; font-size: 14px; width: 100%; }
 
 .rejection-log div { background: var(--warn); border-radius: 6px; color: #7a4b00; flex-wrap: wrap; gap: 10px; padding: 12px; }
 .rejection-log div.pass { background: var(--good); color: #006d3e; }
