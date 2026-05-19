@@ -141,7 +141,7 @@ async function loadStrategy(strategyId: bigint): Promise<StrategyView> {
     mandate,
     hyperliquid,
     polymarket,
-    risk: scoreStrategy({ bondUsdc, mandate, hyperliquid, polymarket }),
+    risk: scoreStrategy({ bondUsdc, mandate, hyperliquid, polymarket, followerCount: Number(followerCount), totalFollowerWeight: Number(totalFollowerWeight) }),
   }
 }
 

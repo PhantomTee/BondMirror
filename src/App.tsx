@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   ClipboardCheck,
+  Copy,
   Database,
   FileText,
   Gauge,
@@ -18,6 +19,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  TrendingUp,
   Wallet,
   X,
 } from 'lucide-react'
@@ -31,6 +33,7 @@ import { useWalletSession } from './hooks/useWalletSession'
 import { claimCompensation, createLeaderStrategy, stakeBond, subscribeFollower } from './services/wallet'
 import { supabaseStatus } from './services/supabase'
 import { formatReferenceUri, formatShortValue, summarizeEvidenceUri } from './services/evidence'
+import { dailyIdleYieldUsdc, estimateApyPercent, fetchUsycRate } from './services/usyc'
 import type { ArcTransactionView, AttestationView, RiskDecision, SlashRisk, StrategyView, WalletSession } from './types'
 
 const appNav = [
@@ -44,6 +47,7 @@ const appNav = [
 
 const shellNav = [
   ['Home', '/', true],
+  ['Leaderboard', '/leaderboard', true],
   ['App', '/app', true],
   ['Leaders', '/app/leaders', false],
   ['Publish', '/app/publish', false],
@@ -643,7 +647,19 @@ function LeadersPage({
   )
 }
 
+function useUsycRate() {
+  const [usdcPerUsyc, setUsdcPerUsyc] = useState<number | null>(null)
+  useEffect(() => {
+    fetchUsycRate().then(({ usdcPerUsyc: rate }) => setUsdcPerUsyc(rate)).catch(() => {})
+  }, [])
+  return usdcPerUsyc
+}
+
 function LeaderProfile({ strategy }: { strategy?: StrategyView }) {
+  const usdcPerUsyc = useUsycRate()
+  const apyPercent = usdcPerUsyc !== null ? estimateApyPercent(usdcPerUsyc) : null
+  const dailyYield = strategy && apyPercent !== null ? dailyIdleYieldUsdc(strategy.bondUsdc, apyPercent) : null
+
   return (
     <aside className="profile-panel">
       <div className="profile-head">
@@ -676,6 +692,19 @@ function LeaderProfile({ strategy }: { strategy?: StrategyView }) {
           <b>{strategy?.mandate?.benchmark ?? strategy?.benchmark ?? 'No benchmark loaded'}</b>
         </div>
       </div>
+      {strategy && (
+        <div className="usyc-yield-panel">
+          <TrendingUp size={14} />
+          <div>
+            <b>USYC idle cost</b>
+            <p>
+              {apyPercent !== null
+                ? `Bond of ${strategy.bondUsdc.toLocaleString()} USDC earns ~${apyPercent}% APY in USYC — ${dailyYield !== null ? `≈$${dailyYield.toFixed(4)}/day idle` : ''}`
+                : 'Fetching USYC rate from Arc…'}
+            </p>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }
@@ -1079,6 +1108,8 @@ function CopyEngine({ strategy }: { strategy?: StrategyView }) {
         ['No slash-pending breach', strategy.risk.status !== 'slash_pending'],
         ['Hyperliquid source healthy', !strategy.hyperliquid?.sourceError],
         ['Polymarket source healthy', !strategy.polymarket?.sourceError],
+        ['No crowding detected', !strategy.risk.violations.includes('strategy_crowded')],
+        ['Follower capital within bond', !strategy.risk.violations.includes('follower_capital_exceeds_bond')],
       ]
     : []
 
@@ -1245,6 +1276,79 @@ function TransactionsPage({ transactions, isLoading }: { transactions: ArcTransa
   )
 }
 
+function PublicLeaderboardPage({ strategies, isLoading }: { strategies: StrategyView[]; isLoading: boolean }) {
+  const [copied, setCopied] = useState(false)
+
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href).catch(() => {})
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 2000)
+  }
+
+  const sorted = [...strategies].sort((a, b) => b.risk.riskScore - a.risk.riskScore)
+
+  return (
+    <section className="public-leaderboard">
+      <div className="leaderboard-header">
+        <div>
+          <span className="eyebrow">Live on Arc Testnet</span>
+          <h1>BondMirror — Bonded Strategy Leaderboard</h1>
+          <p>Every leader here has USDC at risk. Mandate violations trigger on-chain slashing and follower payouts.</p>
+        </div>
+        <button className="share-button" type="button" onClick={copyLink}>
+          <Copy size={15} />
+          {copied ? 'Link copied!' : 'Share leaderboard'}
+        </button>
+      </div>
+
+      {isLoading ? (
+        <LoadingPanel title="Reading Arc Testnet" detail="Fetching bonded strategies, live Hyperliquid exposure, and risk scores." />
+      ) : sorted.length === 0 ? (
+        <EmptyState title="No bonded strategies yet" detail="Be the first — publish a slash-bonded strategy via the App." />
+      ) : (
+        <div className="public-leader-list">
+          {sorted.map((strategy, index) => {
+            const name = strategy.mandate?.displayName ?? formatAddress(strategy.leader)
+            const returnWindow = strategy.hyperliquid?.returnWindowPercent ?? strategy.polymarket?.realizedPnl
+            const statusColor = strategy.risk.status === 'healthy' ? 'good' : strategy.risk.status === 'slash_pending' ? 'bad' : 'warn'
+            const crowded = strategy.risk.violations.includes('strategy_crowded') || strategy.risk.violations.includes('strategy_crowding_warning')
+
+            return (
+              <article className={`public-leader-card ${statusColor}`} key={strategy.id.toString()}>
+                <div className="rank">#{index + 1}</div>
+                <div className="public-leader-main">
+                  <div className="public-leader-title">
+                    <strong>{name}</strong>
+                    <span className={`pill ${statusColor}`}>{statusLabel(strategy.risk.status)}</span>
+                    {crowded && <span className="pill warn">crowded</span>}
+                  </div>
+                  <p>{strategy.mandate?.strategy ?? formatMandateReference(strategy.mandateURI)}</p>
+                  <div className="public-leader-stats">
+                    <span>Bond: <b>{strategy.bondUsdc.toLocaleString()} USDC</b></span>
+                    <span>Followers: <b>{strategy.followerCount.toString()}</b></span>
+                    <span>Violations: <b>{strategy.risk.violations.length}</b></span>
+                    <span>Return: <b>{formatMaybePercent(returnWindow)}</b></span>
+                    <span>Slash risk: <b className={riskTone(strategy.risk.slashRisk)}>{strategy.risk.slashRisk}</b></span>
+                  </div>
+                </div>
+                <div className={`public-score ${statusColor}`}>
+                  <strong>{strategy.risk.riskScore}</strong>
+                  <span>copy score</span>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+
+      <div className="leaderboard-footer">
+        <p>Scores update every 30 seconds from live Arc, Hyperliquid, and Polymarket data. No wallet required to view.</p>
+        <Link className="secondary-action" to="/app">Open full app</Link>
+      </div>
+    </section>
+  )
+}
+
 function NotFoundPage() {
   return (
     <section className="not-found">
@@ -1315,6 +1419,7 @@ function App() {
       <Shell wallet={wallet} connectWallet={() => void connectWithToast()} disconnectWallet={disconnectWithToast}>
         <Routes>
           <Route path="/" element={<LandingPage wallet={wallet} />} />
+          <Route path="/leaderboard" element={<PublicLeaderboardPage strategies={strategies} isLoading={isInitialLoading} />} />
           <Route
             path="/app"
             element={

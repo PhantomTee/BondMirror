@@ -38,6 +38,7 @@ export const appConfig = {
   arcChainId: Number(import.meta.env.VITE_ARC_CHAIN_ID ?? arcTestnet.id),
   bondContract: optionalAddress(import.meta.env.VITE_BONDMIRROR_CONTRACT_ADDRESS),
   usdc: optionalAddress(import.meta.env.VITE_ARC_USDC_ADDRESS) ?? '0x3600000000000000000000000000000000000000',
+  usyc: '0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C' as Address,
   eventFromBlock: bigintFromEnv(import.meta.env.VITE_BONDMIRROR_FROM_BLOCK),
   polymarketBuilderCode: import.meta.env.VITE_POLYMARKET_BUILDER_CODE,
   ipfsGateway: import.meta.env.VITE_IPFS_GATEWAY ?? 'https://ipfs.io/ipfs/',

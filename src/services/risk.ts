@@ -9,10 +9,12 @@ export function scoreStrategy(input: {
   mandate?: RiskMandate
   hyperliquid?: HyperliquidSummary
   polymarket?: PolymarketSummary
+  followerCount?: number
+  totalFollowerWeight?: number
 }): RiskDecision {
   const violations: string[] = []
   let score = 80
-  const { bondUsdc, mandate, hyperliquid, polymarket } = input
+  const { bondUsdc, mandate, hyperliquid, polymarket, followerCount = 0, totalFollowerWeight = 0 } = input
 
   if (!mandate) {
     score -= 45
@@ -52,6 +54,26 @@ export function scoreStrategy(input: {
   if (polymarket && polymarket.nearResolutionMarkets > 0) {
     score -= 12
     violations.push('near_resolution_market_risk')
+  }
+
+  // Strategy crowding / decay detection
+  // Too many followers relative to bond size means the leader has insufficient skin in the game
+  // and the strategy edge degrades as copy volume grows (front-running, slippage, market impact)
+  if (bondUsdc > 0 && followerCount > 0) {
+    const followersPerUsdc = followerCount / bondUsdc
+    if (followersPerUsdc > 5) {
+      score -= 18
+      violations.push('strategy_crowded')
+    } else if (followersPerUsdc > 2) {
+      score -= 8
+      violations.push('strategy_crowding_warning')
+    }
+  }
+
+  // Total follower capital weight far exceeds bond — leader's accountability is diluted
+  if (bondUsdc > 0 && totalFollowerWeight > bondUsdc * 10) {
+    score -= 12
+    violations.push('follower_capital_exceeds_bond')
   }
 
   const riskScore = Math.round(clamp(score, 0, 100))

@@ -1491,3 +1491,178 @@ textarea:focus {
 
   .grid-area { gap: 14px; }
 }
+
+/* ── Public Leaderboard ─────────────────────────────────────────── */
+.public-leaderboard {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.leaderboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.leaderboard-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 4px 0 8px;
+  line-height: 1.2;
+}
+
+.leaderboard-header p {
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+.share-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.public-leader-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.public-leader-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+
+.public-leader-card.good { border-left: 3px solid var(--green); }
+.public-leader-card.warn { border-left: 3px solid var(--yellow); }
+.public-leader-card.bad  { border-left: 3px solid var(--red); }
+
+.public-leader-card .rank {
+  font-size: 18px;
+  font-weight: 700;
+  opacity: 0.35;
+  min-width: 32px;
+  text-align: center;
+}
+
+.public-leader-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.public-leader-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.public-leader-title strong {
+  font-size: 15px;
+}
+
+.public-leader-main > p {
+  font-size: 13px;
+  opacity: 0.55;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.public-leader-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.public-leader-stats b {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.public-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+
+.public-score strong {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.public-score.good strong { color: var(--green); }
+.public-score.warn strong { color: var(--yellow); }
+.public-score.bad  strong { color: var(--red); }
+
+.public-score span {
+  font-size: 10px;
+  opacity: 0.45;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.leaderboard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+/* ── USYC idle yield panel ──────────────────────────────────────── */
+.usyc-yield-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--green) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--green) 25%, transparent);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.usyc-yield-panel svg {
+  color: var(--green);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.usyc-yield-panel b {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.usyc-yield-panel p {
+  opacity: 0.65;
+  line-height: 1.4;
+}
