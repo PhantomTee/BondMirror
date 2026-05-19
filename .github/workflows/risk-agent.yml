@@ -1,0 +1,35 @@
+name: BondMirror Risk Agent
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # every hour
+  workflow_dispatch:        # manual trigger from GitHub UI
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run risk agent
+        run: npx tsx scripts/run-risk-agent.ts
+        env:
+          ARC_RPC_URL: https://rpc.testnet.arc.network
+          ARC_CHAIN_ID: '5042002'
+          BONDMIRROR_CONTRACT_ADDRESS: ${{ secrets.BONDMIRROR_CONTRACT_ADDRESS }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RISK_AGENT_ADDRESS: ${{ secrets.RISK_AGENT_ADDRESS }}
+          RISK_AGENT_PRIVATE_KEY: ${{ secrets.RISK_AGENT_PRIVATE_KEY }}
+          POLYMARKET_BUILDER_CODE: ${{ secrets.POLYMARKET_BUILDER_CODE }}
+          IPFS_GATEWAY: 'https://ipfs.io/ipfs/'

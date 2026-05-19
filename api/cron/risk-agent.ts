@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { createPublicClient, defineChain, formatUnits, getAddress, http, isAddress, type Address } from 'viem'
+import { createPublicClient, createWalletClient, defineChain, formatUnits, getAddress, http, isAddress, keccak256, toBytes, type Address } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 import { bondMirrorBondAbi } from '../../src/abi/bondMirrorBond'
 import { fetchHyperliquidSummary } from '../../src/services/hyperliquid'
 import { fetchPolymarketSummary } from '../../src/services/polymarket'
@@ -251,13 +252,40 @@ async function upsertAttestation(params: {
   })
 }
 
-async function runRiskAgent() {
+function agentWalletClient(rpcUrl: string) {
+  const raw = process.env.RISK_AGENT_PRIVATE_KEY
+  if (!raw) return null
+  const key = raw.startsWith('0x') ? raw : `0x${raw}`
+  const account = privateKeyToAccount(key as `0x${string}`)
+  return createWalletClient({ account, chain: arcTestnet, transport: http(rpcUrl) })
+}
+
+async function recordAttestationOnchain(params: {
+  walletClient: ReturnType<typeof createWalletClient>
+  contract: Address
+  strategyId: bigint
+  condition: string
+  evidenceURI: string
+  slashBps: number
+}) {
+  const conditionBytes32 = keccak256(toBytes(params.condition))
+  const safeBps = Math.min(Math.max(params.slashBps, 0), 5000) as number
+  await params.walletClient.writeContract({
+    address: params.contract,
+    abi: bondMirrorBondAbi,
+    functionName: 'recordAttestation',
+    args: [params.strategyId, conditionBytes32, params.evidenceURI, safeBps],
+  })
+}
+
+export async function runRiskAgent() {
   const rpcUrl = process.env.ARC_RPC_URL ?? process.env.VITE_ARC_RPC_URL ?? DEFAULT_ARC_RPC_URL
   const contract = optionalAddress(process.env.BONDMIRROR_CONTRACT_ADDRESS ?? process.env.VITE_BONDMIRROR_CONTRACT_ADDRESS)
   if (!contract) {
     throw new Error('Missing BONDMIRROR_CONTRACT_ADDRESS')
   }
 
+  const wallet = agentWalletClient(rpcUrl)
   const url = env('SUPABASE_URL', supabaseUrl())
   const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY')
   const supabase = createClient(url, serviceKey, {
@@ -298,7 +326,7 @@ async function runRiskAgent() {
         ? fetchPolymarketSummary(mandate.polymarketProxy, polymarketBuilderCode)
         : Promise.resolve(undefined),
     ])
-    const risk = scoreStrategy({ bondUsdc, mandate, hyperliquid, polymarket })
+    const risk = scoreStrategy({ bondUsdc, mandate, hyperliquid, polymarket, followerCount: Number(followerCount), totalFollowerWeight: Number(totalFollowerWeight) })
 
     const { data, error } = await supabase
       .from('strategy_mandates')
@@ -341,6 +369,15 @@ async function runRiskAgent() {
     if (data?.id && risk.status === 'slash_pending') {
       const condition = risk.violations.find((item) => item === 'leverage_above_max' || item === 'drawdown_above_max')
       if (condition) {
+        const slashPercent = mandate?.slashRules.find((rule) => rule.condition === condition)?.slashPercent ?? 0.1
+        const slashBps = Math.round(slashPercent * 10_000)
+        const evidenceURI = `data:application/json,${encodeURIComponent(JSON.stringify({
+          score: risk.riskScore,
+          violations: risk.violations,
+          reason: risk.reason,
+          observedAt: new Date().toISOString(),
+        }))}`
+
         await upsertAttestation({
           supabase,
           strategyDbId: data.id,
@@ -351,6 +388,15 @@ async function runRiskAgent() {
           hyperliquid,
           polymarket,
         })
+
+        if (wallet) {
+          try {
+            await recordAttestationOnchain({ walletClient: wallet, contract, strategyId: id, condition, evidenceURI, slashBps })
+            console.log(`Onchain attestation recorded for strategy ${id.toString()} condition=${condition}`)
+          } catch (err) {
+            console.error(`Onchain attestation failed for strategy ${id.toString()}:`, err)
+          }
+        }
       }
     }
 

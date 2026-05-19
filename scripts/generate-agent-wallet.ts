@@ -1,0 +1,22 @@
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
+
+const privateKey = generatePrivateKey()
+const account = privateKeyToAccount(privateKey)
+
+console.log('=== NEW RISK AGENT WALLET ===')
+console.log('')
+console.log('Address    :', account.address)
+console.log('Private key:', privateKey)
+console.log('')
+console.log('--- Next steps ---')
+console.log('1. Fund the address with Arc Testnet USDC from the faucet:')
+console.log('   https://www.alchemy.com/faucets/arc-testnet (or Arc Discord #faucet)')
+console.log('')
+console.log('2. Redeploy the contract with this as riskAgent:')
+console.log('   RISK_AGENT_ADDRESS=' + account.address + ' npx tsx scripts/deploy-arc.ts')
+console.log('')
+console.log('3. Add these as GitHub repository secrets:')
+console.log('   RISK_AGENT_ADDRESS  =', account.address)
+console.log('   RISK_AGENT_PRIVATE_KEY =', privateKey)
+console.log('')
+console.log('WARNING: Never commit the private key. Store it only in GitHub Secrets and your password manager.')
