@@ -2,7 +2,6 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
-  ArrowUpDown,
   Bot,
   CheckCircle2,
   CircleDollarSign,
