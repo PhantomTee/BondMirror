@@ -248,7 +248,7 @@ function Shell({
         <Link className="brand" to="/" onClick={close}>
           <span>
             <strong>BondMirror</strong>
-            <small>Accountable alpha on Arc</small>
+            <small>Copy trading with skin in the game</small>
           </span>
         </Link>
         <nav className="topnav">
@@ -303,94 +303,128 @@ function LandingPage({ wallet }: { wallet: WalletSession }) {
   return (
     <>
       <section className="landing-hero">
-        {/* Brand display text + CSS reflection directly below */}
         <div className="hero-display-wrap">
           <div className="hero-display">bondmirror.</div>
         </div>
 
-        {/* Bottom row: copy | terminal card | year */}
         <div className="hero-footer">
           <div className="hero-copy">
-            <p className="hero-tagline">Slashable bonds that keep both leaders and followers honest.</p>
-            <h1>No More Bad Signals.<br />No More Hidden Risks.</h1>
+            <p className="hero-tagline">The first copy-trading platform where leaders put their own money on the line.</p>
+            <h1>Copy the best traders.<br />Get paid if they cheat.</h1>
             <div className="hero-actions">
               <button
                 className="primary-action"
                 type="button"
-                disabled={!isConnected}
-                title={isConnected ? 'Open BondMirror app' : 'Connect wallet from the top bar to unlock Launch App'}
-                aria-describedby={!isConnected ? 'launch-wallet-hint' : undefined}
-                onClick={() => navigate('/app')}
+                onClick={() => navigate('/app/leaders')}
               >
                 <ArrowRight size={18} />
-                Launch App
+                Browse Leaders
               </button>
               <a className="secondary-action" href="#how-it-works">
                 <FileText size={18} />
                 How it works
               </a>
             </div>
-            {!isConnected && (
-              <p className="launch-hint" id="launch-wallet-hint">
-                Connect wallet from the top bar to unlock Launch App.
-              </p>
-            )}
           </div>
           <div className="hero-terminal" aria-label="BondMirror accountability preview">
             <div className="terminal-row">
               <span>Leader bond</span>
-              <b>4.5 USDC live</b>
+              <b>5,000 USDC locked</b>
             </div>
             <div className="terminal-row">
               <span>Mandate</span>
-              <b>Max 3x leverage</b>
+              <b>Max 3× leverage</b>
             </div>
             <div className="terminal-row danger">
-              <span>Observed</span>
-              <b>20x Hyperliquid</b>
+              <span>Violation caught</span>
+              <b>20× on Hyperliquid</b>
             </div>
             <div className="terminal-row">
-              <span>Arc action</span>
-              <b>0.5 USDC slashed</b>
+              <span>Followers paid</span>
+              <b>500 USDC distributed</b>
             </div>
           </div>
           <span className="hero-year">2025</span>
         </div>
       </section>
 
-      <section className="landing-section" id="how-it-works">
-        <div className="section-title">
-          <span className="eyebrow">How to use BondMirror</span>
-          <h2>Four steps, all verifiable.</h2>
-        </div>
-        <div className="info-grid">
-          {[
-            ['Connect wallet', 'Use an Arc Testnet wallet so subscriptions, claims, and bond actions can be signed.'],
-            ['Review a leader', 'Check live Hyperliquid exposure, Polymarket activity, mandate limits, bond size, and slash risk.'],
-            ['Follow with caps', 'Set capital, max daily loss, copy mode, and market permissions before subscribing on Arc.'],
-            ['Watch accountability', 'When the risk agent records evidence, the contract can slash the bond and pay followers.'],
-          ].map(([title, detail]) => (
-            <article className="info-panel" key={title}>
-              <b>{title}</b>
-              <p>{detail}</p>
-            </article>
-          ))}
+      {/* Role picker */}
+      <section className="landing-section" id="get-started">
+        <div className="role-picker">
+          <button className="role-card" type="button" onClick={() => navigate('/app/leaders')}>
+            <span className="role-icon">📈</span>
+            <strong>I want to follow a trader</strong>
+            <p>Browse leaders, check their live performance and bond size, subscribe and mirror their trades on-chain.</p>
+            <span className="role-cta">Browse Leaders →</span>
+          </button>
+          <button className="role-card" type="button" onClick={() => navigate('/app/publish')}>
+            <span className="role-icon">🏦</span>
+            <strong>I'm a trader, I want followers</strong>
+            <p>Publish your strategy, stake a USDC bond as collateral, earn performance fees and subscription fees from followers.</p>
+            <span className="role-cta">Publish Strategy →</span>
+          </button>
+          {!isConnected && (
+            <p className="role-hint">You can browse without a wallet. Connect one to subscribe or publish.</p>
+          )}
         </div>
       </section>
 
+      {/* 3-actor flow */}
+      <section className="landing-section" id="how-it-works">
+        <div className="section-title">
+          <span className="eyebrow">How BondMirror works</span>
+          <h2>Three actors. Full accountability.</h2>
+        </div>
+        <div className="actor-flow">
+          <article className="actor-card leader-actor">
+            <span className="actor-emoji">🧑‍💼</span>
+            <strong>Leader</strong>
+            <p>Stakes a USDC bond into a smart contract and publishes a trading mandate — max leverage, allowed markets, drawdown limits.</p>
+            <ul>
+              <li>Bond is locked on Arc</li>
+              <li>Earns performance + subscription fees</li>
+              <li>Loses bond if mandate is broken</li>
+            </ul>
+          </article>
+          <div className="actor-arrow">→</div>
+          <article className="actor-card agent-actor">
+            <span className="actor-emoji">🤖</span>
+            <strong>AI Risk Agent</strong>
+            <p>Monitors the leader's Hyperliquid positions every hour. Compares against the mandate. Warns before slashing.</p>
+            <ul>
+              <li>Tracks live positions 24/7</li>
+              <li>Detects edge decay early</li>
+              <li>Records violations on-chain</li>
+            </ul>
+          </article>
+          <div className="actor-arrow">→</div>
+          <article className="actor-card follower-actor">
+            <span className="actor-emoji">💰</span>
+            <strong>Follower</strong>
+            <p>Subscribes to mirror a leader's trades. If the leader breaks their mandate, the bond is slashed and distributed proportionally.</p>
+            <ul>
+              <li>Mirror trades automatically</li>
+              <li>See real-time decay warnings</li>
+              <li>Claim compensation on-chain</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      {/* vs old copy trading */}
       <section className="landing-section split">
         <div>
           <span className="eyebrow">What makes it different</span>
-          <h2>The signal publisher has skin in the game.</h2>
+          <h2>The trader has real skin in the game.</h2>
         </div>
         <div className="comparison-table">
           <div>
             <span>Old copy trading</span>
-            <p>Leaders monetize attention while followers absorb downside.</p>
+            <p>Leaders earn subscription fees regardless of performance. Bad signals cost followers money — leaders nothing.</p>
           </div>
           <div>
             <span>BondMirror</span>
-            <p>Leaders post USDC. Broken mandates trigger attestations, slashing, and follower payouts.</p>
+            <p>Leaders lock USDC. If they violate their mandate, the on-chain contract slashes their bond and pays followers instantly.</p>
           </div>
         </div>
       </section>
@@ -412,6 +446,35 @@ function SetupPanel({ errors }: { errors: string[] }) {
           <p key={error}>{error}</p>
         ))}
       </div>
+    </section>
+  )
+}
+
+function WelcomeCallout() {
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem('bm_welcome_dismissed') === '1' } catch { return false }
+  })
+  if (dismissed) return null
+  return (
+    <section className="welcome-callout">
+      <div className="welcome-callout-body">
+        <Bot size={22} />
+        <div>
+          <strong>New here? Here's how BondMirror works.</strong>
+          <p>
+            Leaders lock a <b>USDC bond</b> and publish trading rules (max leverage, allowed markets).
+            An AI agent monitors their Hyperliquid positions 24/7.
+            If they break their rules, the bond is <b>slashed on-chain</b> and distributed to followers instantly.
+            Browse leaders on the <b>Leaders</b> tab, or publish your own strategy on <b>Publish</b>.
+          </p>
+        </div>
+      </div>
+      <button className="welcome-dismiss" type="button" onClick={() => {
+        try { localStorage.setItem('bm_welcome_dismissed', '1') } catch {}
+        setDismissed(true)
+      }}>
+        <X size={16} /> Got it
+      </button>
     </section>
   )
 }
@@ -459,6 +522,7 @@ function AppLayout({
         </button>
       </aside>
       <div className="app-content">
+        <WelcomeCallout />
         <SetupPanel errors={[...new Set(errors)]} />
         {children}
       </div>

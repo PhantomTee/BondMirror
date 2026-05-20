@@ -691,6 +691,207 @@ button,
   text-transform: uppercase;
 }
 
+/* === ROLE PICKER === */
+
+.role-picker {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+}
+
+.role-card {
+  align-items: flex-start;
+  background: var(--paper);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 28px 24px;
+  text-align: left;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.role-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-3px);
+}
+
+.role-icon {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.role-card strong {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+}
+
+.role-card p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.role-cta {
+  color: var(--sky-strong);
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.role-hint {
+  color: var(--muted);
+  font-size: 13px;
+  grid-column: 1 / -1;
+  margin: 0;
+  text-align: center;
+}
+
+/* === 3-ACTOR FLOW === */
+
+.actor-flow {
+  align-items: stretch;
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr 40px 1fr 40px 1fr;
+}
+
+.actor-card {
+  background: var(--paper);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px 24px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.actor-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.actor-emoji {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.actor-card strong {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.actor-card p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.actor-card ul {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.actor-card ul li {
+  color: var(--muted);
+  font-size: 13px;
+  padding-left: 14px;
+  position: relative;
+}
+
+.actor-card ul li::before {
+  color: var(--sky-strong);
+  content: '✓';
+  left: 0;
+  position: absolute;
+}
+
+.leader-actor { border-top: 4px solid var(--sky-strong); }
+.agent-actor  { border-top: 4px solid #7c3aed; }
+.follower-actor { border-top: 4px solid #059669; }
+
+.actor-arrow {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 24px;
+  justify-content: center;
+}
+
+/* === WELCOME CALLOUT (app interior) === */
+
+.welcome-callout {
+  align-items: flex-start;
+  background: var(--sky-soft);
+  border: 2px solid var(--sky-strong);
+  border-radius: 10px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+}
+
+.welcome-callout-body {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  flex: 1;
+}
+
+.welcome-callout-body svg {
+  color: var(--sky-strong);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.welcome-callout-body strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.welcome-callout-body p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.welcome-dismiss {
+  align-items: center;
+  background: transparent;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: none;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 5px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.welcome-dismiss:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 /* === APP SHELL === */
 .app-shell {
   display: grid;
@@ -1388,6 +1589,9 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .actor-flow { grid-template-columns: 1fr; }
+  .actor-arrow { transform: rotate(90deg); font-size: 20px; }
+
   .hero-year { display: none; }
 
   .side-nav,
@@ -1458,8 +1662,23 @@ textarea:focus {
   .field-grid.compact,
   .rule-grid,
   .action-grid,
-  .flow-steps {
+  .flow-steps,
+  .role-picker {
     grid-template-columns: 1fr;
+  }
+
+  .actor-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .actor-arrow {
+    font-size: 20px;
+    transform: rotate(90deg);
+  }
+
+  .welcome-callout {
+    flex-direction: column;
+    gap: 12px;
   }
 
   /* App shell */
