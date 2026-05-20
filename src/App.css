@@ -905,13 +905,13 @@ button,
   box-shadow: none;
 }
 
-.compare-col.bad  { background: color-mix(in srgb, #ef4444 5%, var(--paper)); color: var(--muted); }
-.compare-col.good { background: color-mix(in srgb, #059669 6%, var(--paper)); color: var(--ink); }
-.compare-col.bad  svg { color: #ef4444; }
-.compare-col.good svg { color: #059669; }
+.compare-col.bad  { background: color-mix(in srgb, var(--ink) 5%, var(--paper)); color: var(--muted); }
+.compare-col.good { background: color-mix(in srgb, var(--sky-soft) 55%, var(--paper)); color: var(--ink); }
+.compare-col.bad  svg { color: var(--ink); }
+.compare-col.good svg { color: var(--sky-strong); }
 
-.compare-header .compare-col.bad  { background: color-mix(in srgb, #ef4444 55%, var(--ink)); }
-.compare-header .compare-col.good { background: color-mix(in srgb, #059669 55%, var(--ink)); }
+.compare-header .compare-col.bad  { background: var(--ink); }
+.compare-header .compare-col.good { background: var(--sky-strong); }
 
 /* === WHY ARC === */
 

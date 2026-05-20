@@ -82,6 +82,16 @@ function formatAddress(value: string) {
   return `${value.slice(0, 6)}...${value.slice(-4)}`
 }
 
+// Guard against garbage bigints decoded from a mismatched contract ABI.
+// Max sane value: 100 million USDC (100_000_000 * 1e6 micro-USDC).
+const MAX_SANE_USDC = 100_000_000n * 1_000_000n
+
+function safeUsdc(amount: bigint): string {
+  if (amount > MAX_SANE_USDC) return '—'
+  const n = Number(formatUnits(amount, 6))
+  return isFinite(n) ? n.toLocaleString() : '—'
+}
+
 function formatHash(value: string) {
   return value.length > 14 ? formatAddress(value) : value
 }
@@ -605,7 +615,7 @@ function LeaderCard({ strategy, selected, onSelect }: { strategy: StrategyView; 
         <Metric label="Perf fee" value={strategy.performanceFeeBps > 0 ? `${(strategy.performanceFeeBps / 100).toFixed(1)}%` : 'None'} />
         <Metric
           label="Sub fee"
-          value={strategy.subscriptionFeeUsdc > 0n ? `${Number(formatUnits(strategy.subscriptionFeeUsdc, 6)).toLocaleString()} USDC` : 'Free'}
+          value={strategy.subscriptionFeeUsdc > 0n ? `${safeUsdc(strategy.subscriptionFeeUsdc)} USDC` : 'Free'}
         />
       </div>
       <div className="live-score">
@@ -840,21 +850,21 @@ function LeaderProfile({ strategy, account, notify }: { strategy?: StrategyView;
             </div>
             <div className="earnings-item">
               <span>Subscription fee</span>
-              <b>{strategy.subscriptionFeeUsdc > 0n ? `${Number(formatUnits(strategy.subscriptionFeeUsdc, 6)).toLocaleString()} USDC per follower` : 'Free to follow'}</b>
+              <b>{strategy.subscriptionFeeUsdc > 0n ? `${safeUsdc(strategy.subscriptionFeeUsdc)} USDC per follower` : 'Free to follow'}</b>
             </div>
             <div className="earnings-item">
               <span>Total earned (all time)</span>
-              <b>{Number(formatUnits(strategy.totalFeesEarned, 6)).toLocaleString()} USDC</b>
+              <b>{safeUsdc(strategy.totalFeesEarned)} USDC</b>
             </div>
             <div className="earnings-item highlight">
               <span>Available to collect</span>
-              <b>{Number(formatUnits(strategy.leaderFeeBalance, 6)).toLocaleString()} USDC</b>
+              <b>{safeUsdc(strategy.leaderFeeBalance)} USDC</b>
             </div>
           </div>
           {isOwnStrategy && strategy.leaderFeeBalance > 0n && (
             <button className="collect-fees-btn" type="button" onClick={() => void handleCollectFees()}>
               <CircleDollarSign size={15} />
-              Collect {Number(formatUnits(strategy.leaderFeeBalance, 6)).toLocaleString()} USDC
+              Collect {safeUsdc(strategy.leaderFeeBalance)} USDC
             </button>
           )}
           {isOwnStrategy && strategy.leaderFeeBalance === 0n && (
@@ -1258,7 +1268,7 @@ function FollowPage({
             </span>
             {strategy && (strategy.performanceFeeBps > 0 || strategy.subscriptionFeeUsdc > 0n) && (
               <span className="fee-summary">
-                {strategy.subscriptionFeeUsdc > 0n && `${Number(formatUnits(strategy.subscriptionFeeUsdc, 6)).toLocaleString()} USDC paid on subscribe`}
+                {strategy.subscriptionFeeUsdc > 0n && `${safeUsdc(strategy.subscriptionFeeUsdc)} USDC paid on subscribe`}
                 {strategy.subscriptionFeeUsdc > 0n && strategy.performanceFeeBps > 0 && ' · '}
                 {strategy.performanceFeeBps > 0 && `${(strategy.performanceFeeBps / 100).toFixed(1)}% of profits as performance fee`}
               </span>
