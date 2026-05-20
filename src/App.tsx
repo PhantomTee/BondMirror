@@ -2,10 +2,12 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  ArrowUpDown,
   Bot,
   CheckCircle2,
   CircleDollarSign,
   ClipboardCheck,
+  Compass,
   Copy,
   Database,
   FileText,
@@ -19,9 +21,11 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  TrendingDown,
   TrendingUp,
   Wallet,
   X,
+  Zap,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
@@ -34,10 +38,13 @@ import { claimCompensation, createLeaderStrategy, stakeBond, subscribeFollower }
 import { supabaseStatus } from './services/supabase'
 import { formatReferenceUri, formatShortValue, summarizeEvidenceUri } from './services/evidence'
 import { dailyIdleYieldUsdc, estimateApyPercent, fetchUsycRate } from './services/usyc'
-import type { ArcTransactionView, AttestationView, RiskDecision, SlashRisk, StrategyView, WalletSession } from './types'
+import { fetchHlLeaderboard, formatUsd } from './services/hyperliquid-leaderboard'
+import { fetchDecayWarning, fetchMirrorSignals } from './services/mirror'
+import type { ArcTransactionView, AttestationView, DecayWarning, HlLeaderboardEntry, MirrorSignal, RiskDecision, SlashRisk, StrategyView, WalletSession } from './types'
 
 const appNav = [
   ['Command', '/app', LayoutDashboard],
+  ['Discover', '/app/discover', Compass],
   ['Leaders', '/app/leaders', ShieldCheck],
   ['Publish', '/app/publish', FileText],
   ['Follow', '/app/follow', SlidersHorizontal],
@@ -481,6 +488,8 @@ function LeaderCard({ strategy, selected, onSelect }: { strategy: StrategyView; 
           <div className="row-title">
             <strong>{name}</strong>
             <span className={`pill ${riskTone(strategy.risk.slashRisk)}`}>{strategy.risk.slashRisk} slash risk</span>
+            {strategy.risk.violations.includes('strategy_crowded') && <span className="pill warn">crowded</span>}
+            {strategy.risk.violations.includes('strategy_crowding_warning') && <span className="pill warn">crowding</span>}
           </div>
           <p>{strategy.mandate?.strategy ?? formatMandateReference(strategy.mandateURI)}</p>
           <span className="source-line">{platforms}</span>
@@ -659,6 +668,9 @@ function LeaderProfile({ strategy }: { strategy?: StrategyView }) {
   const usdcPerUsyc = useUsycRate()
   const apyPercent = usdcPerUsyc !== null ? estimateApyPercent(usdcPerUsyc) : null
   const dailyYield = strategy && apyPercent !== null ? dailyIdleYieldUsdc(strategy.bondUsdc, apyPercent) : null
+  // Decay warning comes from Supabase score history — we use strategy.id.toString() as a proxy
+  // (in a full deploy, strategyDbId would come from Supabase; here we use contract id as fallback)
+  const decay = useDecayWarning(strategy ? `contract-${strategy.id.toString()}` : undefined)
 
   return (
     <aside className="profile-panel">
@@ -670,6 +682,9 @@ function LeaderProfile({ strategy }: { strategy?: StrategyView }) {
         </div>
         {strategy && <span className={`pill ${riskTone(strategy.risk.slashRisk)}`}>{statusLabel(strategy.risk.status)}</span>}
       </div>
+
+      {decay && <DecayBanner decay={decay} />}
+
       <div className="profile-metrics">
         <Metric label="Hyperliquid return" value={formatMaybePercent(strategy?.hyperliquid?.returnWindowPercent)} />
         <Metric label="Max drawdown" value={formatMaybePercent(strategy?.hyperliquid?.maxDrawdownPercent)} trend="down" />
@@ -678,6 +693,18 @@ function LeaderProfile({ strategy }: { strategy?: StrategyView }) {
         <Metric label="Polymarket trades" value={(strategy?.polymarket?.tradesAnalyzed ?? 0).toString()} />
         <Metric label="Prediction accuracy" value={strategy?.polymarket?.predictionAccuracy ? `${strategy.polymarket.predictionAccuracy}%` : 'live n/a'} />
       </div>
+
+      {strategy && (
+        <>
+          <div className="signal-section-head">
+            <Zap size={14} />
+            <span>Live mirror signals</span>
+            <span className="eyebrow">auto-detected position changes</span>
+          </div>
+          <MirrorSignalFeed contractStrategyId={Number(strategy.id)} />
+        </>
+      )}
+
       <div className="mandate-summary">
         <div>
           <span>Max leverage</span>
@@ -1349,6 +1376,207 @@ function PublicLeaderboardPage({ strategies, isLoading }: { strategies: Strategy
   )
 }
 
+// ── Hooks for mirror signals and decay warnings ───────────────────────────────
+
+function useMirrorSignals(contractStrategyId: number | undefined) {
+  const [signals, setSignals] = useState<MirrorSignal[]>([])
+  useEffect(() => {
+    if (!contractStrategyId) return
+    fetchMirrorSignals(contractStrategyId, 15)
+      .then(setSignals)
+      .catch(() => {})
+  }, [contractStrategyId])
+  return signals
+}
+
+function useDecayWarning(strategyDbId: string | undefined) {
+  const [decay, setDecay] = useState<DecayWarning | null>(null)
+  useEffect(() => {
+    if (!strategyDbId) return
+    fetchDecayWarning(strategyDbId)
+      .then(setDecay)
+      .catch(() => {})
+  }, [strategyDbId])
+  return decay
+}
+
+function useHlLeaderboard() {
+  const [entries, setEntries] = useState<HlLeaderboardEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    fetchHlLeaderboard('30d')
+      .then(setEntries)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load leaderboard'))
+      .finally(() => setLoading(false))
+  }, [])
+  return { entries, loading, error }
+}
+
+// ── Mirror signal feed ────────────────────────────────────────────────────────
+
+function actionLabel(action: MirrorSignal['action']) {
+  switch (action) {
+    case 'open_long':  return { text: 'LONG opened', tone: 'good' }
+    case 'open_short': return { text: 'SHORT opened', tone: 'warn' }
+    case 'close_long': return { text: 'LONG closed', tone: 'info' }
+    case 'close_short':return { text: 'SHORT closed', tone: 'info' }
+    case 'size_change': return { text: 'SIZE changed', tone: 'warn' }
+  }
+}
+
+function timeAgo(date: Date) {
+  const s = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (s < 60)   return `${s}s ago`
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+  return `${Math.floor(s / 86400)}d ago`
+}
+
+function MirrorSignalFeed({ contractStrategyId }: { contractStrategyId: number }) {
+  const signals = useMirrorSignals(contractStrategyId)
+  if (!signals.length) {
+    return (
+      <div className="signal-feed-empty">
+        <Zap size={16} />
+        <span>No position changes yet — agent checks every hour</span>
+      </div>
+    )
+  }
+  return (
+    <div className="signal-feed">
+      {signals.map((sig) => {
+        const { text, tone } = actionLabel(sig.action)
+        return (
+          <div key={sig.id} className={`signal-row tone-${tone}`}>
+            <span className="signal-coin">{sig.coin}</span>
+            <span className={`signal-action pill ${tone === 'good' ? 'good' : tone === 'warn' ? 'warn' : ''}`}>{text}</span>
+            <span className="signal-size">{sig.size.toFixed(4)}</span>
+            {sig.leverage && <span className="signal-leverage">{sig.leverage}×</span>}
+            <span className="signal-time">{timeAgo(sig.createdAt)}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Decay warning banner ──────────────────────────────────────────────────────
+
+function DecayBanner({ decay }: { decay: DecayWarning }) {
+  if (decay.warningLevel === 'none') return null
+  const config = {
+    watch:    { icon: TrendingDown, text: 'Edge watch: score has been declining over recent checks.', cls: 'decay-watch' },
+    warn:     { icon: AlertTriangle, text: 'Edge warning: score falling fast — consider reducing position.', cls: 'decay-warn' },
+    critical: { icon: AlertTriangle, text: 'Edge critical: agent may slash before next cycle — exit or wait.', cls: 'decay-critical' },
+  }[decay.warningLevel]
+  if (!config) return null
+  const Icon = config.icon
+  return (
+    <div className={`decay-banner ${config.cls}`}>
+      <Icon size={16} />
+      <span>{config.text}</span>
+      <span className="decay-scores">{decay.scores.slice(-5).join(' → ')}</span>
+    </div>
+  )
+}
+
+// ── Discover page (Hyperliquid top traders) ───────────────────────────────────
+
+function DiscoverPage({ strategies }: { strategies: StrategyView[] }) {
+  const { entries, loading, error } = useHlLeaderboard()
+  const navigate = useNavigate()
+
+  // Match HL addresses to registered BondMirror strategies via mandate
+  const registeredByAddress = useMemo(() => {
+    const map = new Map<string, StrategyView>()
+    for (const s of strategies) {
+      if (s.mandate?.hyperliquidUser) {
+        map.set(s.mandate.hyperliquidUser.toLowerCase(), s)
+      }
+    }
+    return map
+  }, [strategies])
+
+  const enriched: HlLeaderboardEntry[] = entries.map((e) => ({
+    ...e,
+    bondMirrorStrategy: registeredByAddress.get(e.ethAddress.toLowerCase()),
+  }))
+
+  return (
+    <>
+      <section className="page-head">
+        <div>
+          <span className="eyebrow">Hyperliquid top traders</span>
+          <h1>Discover — invite leaders to register</h1>
+          <p>Live 30-day leaderboard from Hyperliquid. Traders who register a USDC bond on Arc appear with a Mirror button.</p>
+        </div>
+        <Compass size={28} />
+      </section>
+
+      {loading && <LoadingPanel title="Loading Hyperliquid leaderboard" detail="Fetching top 100 traders by 30-day PnL from api.hyperliquid.xyz…" />}
+      {error && <EmptyState title="Hyperliquid unreachable" detail={error} />}
+
+      {!loading && !error && (
+        <div className="discover-table">
+          <div className="discover-header">
+            <span>#</span>
+            <span>Trader</span>
+            <span>30d PnL</span>
+            <span>All-time PnL</span>
+            <span>Volume</span>
+            <span>Account</span>
+            <span>Status</span>
+          </div>
+          {enriched.map((entry) => {
+            const registered = Boolean(entry.bondMirrorStrategy)
+            return (
+              <div key={entry.ethAddress} className={`discover-row ${registered ? 'registered' : ''}`}>
+                <span className="discover-rank">#{entry.rank}</span>
+                <span className="discover-addr">{formatAddress(entry.ethAddress)}</span>
+                <span className={`discover-pnl ${entry.windowPnl >= 0 ? 'positive' : 'negative'}`}>
+                  {entry.windowPnl >= 0 ? '+' : ''}{formatUsd(entry.windowPnl)}
+                </span>
+                <span className="discover-pnl">{entry.pnl >= 0 ? '+' : ''}{formatUsd(entry.pnl)}</span>
+                <span>{formatUsd(entry.volume)}</span>
+                <span>{formatUsd(entry.accountValue)}</span>
+                <span>
+                  {registered ? (
+                    <button
+                      className="primary-action discover-action"
+                      type="button"
+                      onClick={() => navigate('/app/leaders')}
+                    >
+                      <ShieldCheck size={14} />
+                      Mirror
+                    </button>
+                  ) : (
+                    <button
+                      className="secondary-action discover-action"
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(entry.ethAddress).catch(() => {})
+                      }}
+                    >
+                      <Copy size={14} />
+                      Copy address
+                    </button>
+                  )}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <div className="discover-footer">
+        <p>Registered traders have staked a USDC performance bond. If they violate their mandate, the bond is slashed and distributed to followers on Arc (sub-second settlement).</p>
+        <Link className="secondary-action" to="/app/publish">Register as a leader</Link>
+      </div>
+    </>
+  )
+}
+
 function NotFoundPage() {
   return (
     <section className="not-found">
@@ -1425,6 +1653,14 @@ function App() {
             element={
               <AppLayout live={live} notify={notify}>
                 <DashboardPage strategies={strategies} transactions={data?.transactions ?? []} selectedStrategy={selectedStrategy} isLoading={isInitialLoading} />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/app/discover"
+            element={
+              <AppLayout live={live} notify={notify}>
+                <DiscoverPage strategies={strategies} />
               </AppLayout>
             }
           />

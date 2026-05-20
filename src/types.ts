@@ -110,3 +110,39 @@ export type WalletSession = {
   status: 'disconnected' | 'connecting' | 'connected' | 'error'
   message?: string
 }
+
+// ── Hyperliquid leaderboard discovery ────────────────────────────────────────
+
+export type HlLeaderboardEntry = {
+  rank: number
+  ethAddress: Address
+  windowPnl: number   // 30-day PnL in USD
+  pnl: number         // all-time PnL
+  volume: number      // 30-day volume
+  accountValue: number
+  /** Linked BondMirror strategy if this trader has registered */
+  bondMirrorStrategy?: StrategyView
+}
+
+// ── Mirror signals ────────────────────────────────────────────────────────────
+
+export type MirrorSignal = {
+  id: string
+  strategyId: string
+  contractStrategyId: number
+  coin: string
+  action: 'open_long' | 'open_short' | 'close_long' | 'close_short' | 'size_change'
+  size: number
+  priceEstimate: number | null
+  leverage: number | null
+  createdAt: Date
+}
+
+// ── Decay warning ─────────────────────────────────────────────────────────────
+
+export type DecayWarning = {
+  decaying: boolean
+  slope: number           // points per check; negative = declining
+  scores: number[]        // recent scores, oldest first
+  warningLevel: 'none' | 'watch' | 'warn' | 'critical'
+}
