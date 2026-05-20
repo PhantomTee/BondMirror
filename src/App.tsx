@@ -788,6 +788,8 @@ function PublishLeaderPage({ account, onRefresh, notify }: { account?: Address; 
   const [leverageSlash, setLeverageSlash] = useState(10)
   const [drawdownSlash, setDrawdownSlash] = useState(20)
   const [shiftSlash, setShiftSlash] = useState(15)
+  const [performanceFeeBps, setPerformanceFeeBps] = useState(500)   // 5% default
+  const [subscriptionFeeUsdc, setSubscriptionFeeUsdc] = useState(0) // 0 default
   const [externalMandateURI, setExternalMandateURI] = useState('')
   const [isPublishing, setIsPublishing] = useState(false)
 
@@ -857,6 +859,8 @@ function PublishLeaderPage({ account, onRefresh, notify }: { account?: Address; 
         benchmark,
         slashRules: mandate.slashRules,
         stakeAmountUsdc: bondAmount,
+        performanceFeeBps,
+        subscriptionFeeUsdc,
       })
       notify({
         tone: 'success',
@@ -952,7 +956,17 @@ function PublishLeaderPage({ account, onRefresh, notify }: { account?: Address; 
             <input value={shiftSlash} min={1} max={50} step={1} type="number" onChange={(event) => setShiftSlash(Number(event.target.value))} />
           </label>
         </div>
-        <div className="field-grid">
+        <div className="field-grid compact">
+          <label>
+            <span>Performance fee %</span>
+            <input value={performanceFeeBps / 100} min={0} max={30} step={0.5} type="number"
+              onChange={(event) => setPerformanceFeeBps(Math.round(Number(event.target.value) * 100))} />
+          </label>
+          <label>
+            <span>Subscription fee USDC</span>
+            <input value={subscriptionFeeUsdc} min={0} max={10000} step={1} type="number"
+              onChange={(event) => setSubscriptionFeeUsdc(Number(event.target.value))} />
+          </label>
           <label>
             <span>Stake bond now</span>
             <input value={bondAmount} min={0} max={100000} step={1} type="number" onChange={(event) => setBondAmount(Number(event.target.value))} />

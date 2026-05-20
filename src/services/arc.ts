@@ -9,15 +9,18 @@ import { scoreStrategy } from './risk'
 import { summarizeEvidenceUri } from './evidence'
 
 type StrategyTuple = readonly [
-  Address,
-  bigint,
-  bigint,
-  string,
-  string,
-  number,
-  bigint,
-  bigint,
-  bigint,
+  Address,   // leader
+  bigint,    // bond
+  bigint,    // cooldownEndsAt
+  string,    // mandateURI
+  string,    // benchmark
+  number,    // status
+  bigint,    // followerCount
+  bigint,    // totalFollowerWeight
+  bigint,    // totalClaimable
+  number,    // performanceFeeBps
+  bigint,    // subscriptionFeeUsdc
+  bigint,    // totalFeesEarned
 ]
 
 type AttestationTuple = readonly [bigint, `0x${string}`, string, number, Address, bigint]
@@ -114,7 +117,7 @@ async function loadStrategy(strategyId: bigint): Promise<StrategyView> {
     args: [strategyId],
   })) as StrategyTuple
 
-  const [leader, bond, cooldownEndsAt, mandateURI, benchmark, status, followerCount, totalFollowerWeight, totalClaimable] = strategy
+  const [leader, bond, cooldownEndsAt, mandateURI, benchmark, status, followerCount, totalFollowerWeight, totalClaimable, performanceFeeBps, subscriptionFeeUsdc, totalFeesEarned] = strategy
   const errors: string[] = []
   const mandate = await loadMandate(mandateURI, benchmark).catch((error) => {
     errors.push(error instanceof Error ? error.message : 'Mandate fetch failed')
@@ -138,6 +141,9 @@ async function loadStrategy(strategyId: bigint): Promise<StrategyView> {
     followerCount,
     totalFollowerWeight,
     totalClaimable,
+    performanceFeeBps,
+    subscriptionFeeUsdc,
+    totalFeesEarned,
     mandate,
     hyperliquid,
     polymarket,

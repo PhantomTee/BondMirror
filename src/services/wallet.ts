@@ -11,6 +11,10 @@ type CreateLeaderStrategyInput = {
     slashPercent: number
   }>
   stakeAmountUsdc?: number
+  /** Leader's cut of follower profits in basis points (0–3000, i.e. 0–30%). Default 0. */
+  performanceFeeBps?: number
+  /** Flat USDC charged per subscriber, in USDC units (not wei). Default 0. */
+  subscriptionFeeUsdc?: number
 }
 
 function provider() {
@@ -93,11 +97,14 @@ export async function createLeaderStrategy(account: Address, input: CreateLeader
     return bps
   })
 
+  const performanceFeeBps = Math.min(Math.max(Math.round(input.performanceFeeBps ?? 0), 0), 3_000)
+  const subscriptionFeeWei = parseUnits(String(input.subscriptionFeeUsdc ?? 0), 6)
+
   const createHash = await client.writeContract({
     address: appConfig.bondContract,
     abi: bondMirrorBondAbi,
     functionName: 'createStrategy',
-    args: [input.mandateURI, input.benchmark, conditions, slashBps],
+    args: [input.mandateURI, input.benchmark, conditions, slashBps, performanceFeeBps, subscriptionFeeWei],
   })
   await publicClient.waitForTransactionReceipt({ hash: createHash })
 
@@ -173,4 +180,16 @@ export async function stakeBond(account: Address, strategyId: bigint, amountUsdc
     args: [strategyId, amount],
   })
   return { approveHash, stakeHash }
+}
+
+export async function collectLeaderFees(account: Address, strategyId: bigint) {
+  if (!appConfig.bondContract) {
+    throw new Error('BondMirror contract address is not configured.')
+  }
+  return walletClient(account).writeContract({
+    address: appConfig.bondContract,
+    abi: bondMirrorBondAbi,
+    functionName: 'collectLeaderFees',
+    args: [strategyId],
+  })
 }

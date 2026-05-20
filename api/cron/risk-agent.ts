@@ -33,7 +33,8 @@ type VercelResponse = {
 
 // ── Onchain types ─────────────────────────────────────────────────────────────
 
-type StrategyTuple = readonly [Address, bigint, bigint, string, string, number, bigint, bigint, bigint]
+type StrategyTuple = readonly [Address, bigint, bigint, string, string, number, bigint, bigint, bigint, number, bigint, bigint]
+// fields: leader, bond, cooldownEndsAt, mandateURI, benchmark, status, followerCount, totalFollowerWeight, totalClaimable, performanceFeeBps, subscriptionFeeUsdc, totalFeesEarned
 
 // ── Supabase loose type (service role, all tables) ────────────────────────────
 
@@ -536,7 +537,8 @@ export async function runRiskAgent() {
   const polymarketBuilderCode = process.env.POLYMARKET_BUILDER_CODE ?? process.env.VITE_POLYMARKET_BUILDER_CODE
 
   const latestBlock = await publicClient.getBlockNumber()
-  const fromBlock = latestBlock > 200_000n ? latestBlock - 200_000n : 0n
+  const configuredFromBlock = process.env.BONDMIRROR_FROM_BLOCK ?? process.env.VITE_BONDMIRROR_FROM_BLOCK
+  const fromBlock = configuredFromBlock ? BigInt(configuredFromBlock) : (latestBlock > 200_000n ? latestBlock - 200_000n : 0n)
 
   const nextStrategyId = (await publicClient.readContract({
     address: contract,
