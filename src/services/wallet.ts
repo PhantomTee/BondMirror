@@ -141,7 +141,27 @@ export async function subscribeFollower(account: Address, strategyId: bigint, we
   if (!appConfig.bondContract) {
     throw new Error('BondMirror contract address is not configured.')
   }
-  return walletClient(account).writeContract({
+  // Read the subscription fee; if non-zero, approve USDC first
+  const strategy = (await publicClient.readContract({
+    address: appConfig.bondContract,
+    abi: bondMirrorBondAbi,
+    functionName: 'strategies',
+    args: [strategyId],
+  })) as readonly [unknown, unknown, unknown, unknown, unknown, unknown, unknown, unknown, unknown, unknown, bigint, unknown]
+  const subFee = strategy[10] // subscriptionFeeUsdc is index 10
+
+  const client = walletClient(account)
+  if (subFee > 0n) {
+    const approveHash = await client.writeContract({
+      address: appConfig.usdc,
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [appConfig.bondContract, subFee],
+    })
+    await publicClient.waitForTransactionReceipt({ hash: approveHash })
+  }
+
+  return client.writeContract({
     address: appConfig.bondContract,
     abi: bondMirrorBondAbi,
     functionName: 'subscribeFollower',

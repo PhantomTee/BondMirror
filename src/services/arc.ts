@@ -119,10 +119,20 @@ async function loadStrategy(strategyId: bigint): Promise<StrategyView> {
 
   const [leader, bond, cooldownEndsAt, mandateURI, benchmark, status, followerCount, totalFollowerWeight, totalClaimable, performanceFeeBps, subscriptionFeeUsdc, totalFeesEarned] = strategy
   const errors: string[] = []
-  const mandate = await loadMandate(mandateURI, benchmark).catch((error) => {
-    errors.push(error instanceof Error ? error.message : 'Mandate fetch failed')
-    return undefined
-  })
+
+  const [mandate, leaderFeeBalance] = await Promise.all([
+    loadMandate(mandateURI, benchmark).catch((error) => {
+      errors.push(error instanceof Error ? error.message : 'Mandate fetch failed')
+      return undefined
+    }),
+    publicClient.readContract({
+      address: contract,
+      abi: bondMirrorBondAbi,
+      functionName: 'leaderFeeBalance',
+      args: [strategyId],
+    }).then(v => v as bigint).catch(() => 0n),
+  ])
+
   const [hyperliquid, polymarket] = await Promise.all([
     mandate?.hyperliquidUser ? fetchHyperliquidSummary(mandate.hyperliquidUser) : Promise.resolve(undefined),
     mandate?.polymarketProxy ? fetchPolymarketSummary(mandate.polymarketProxy, appConfig.polymarketBuilderCode) : Promise.resolve(undefined),
@@ -144,6 +154,7 @@ async function loadStrategy(strategyId: bigint): Promise<StrategyView> {
     performanceFeeBps,
     subscriptionFeeUsdc,
     totalFeesEarned,
+    leaderFeeBalance,
     mandate,
     hyperliquid,
     polymarket,

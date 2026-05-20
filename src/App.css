@@ -1882,6 +1882,104 @@ textarea:focus {
 }
 
 /* ── USYC idle yield panel ──────────────────────────────────────── */
+/* ── Leader earnings panel ─────────────────────────────────────────── */
+
+.leader-earnings-panel {
+  background: color-mix(in srgb, #059669 6%, var(--paper));
+  border: 2px solid color-mix(in srgb, #059669 30%, transparent);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.earnings-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.earnings-head svg { color: #059669; }
+
+.earnings-head strong {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.earnings-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.earnings-item {
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.earnings-item span {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.earnings-item b {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.earnings-item.highlight {
+  border-color: #059669;
+  background: color-mix(in srgb, #059669 10%, var(--paper));
+}
+
+.earnings-item.highlight b { color: #059669; }
+
+.collect-fees-btn {
+  align-items: center;
+  background: #059669;
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 7px;
+  justify-content: center;
+  padding: 10px 16px;
+  transition: background 0.15s ease;
+}
+
+.collect-fees-btn:hover { background: #047857; }
+
+.earnings-empty {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Fee summary on follow ticket ─────────────────────────────────── */
+
+.fee-summary {
+  color: #059669;
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
 .usyc-yield-panel {
   display: flex;
   align-items: flex-start;

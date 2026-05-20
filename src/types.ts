@@ -76,6 +76,7 @@ export type StrategyView = {
   performanceFeeBps: number
   subscriptionFeeUsdc: bigint
   totalFeesEarned: bigint
+  leaderFeeBalance: bigint
   mandate?: RiskMandate
   hyperliquid?: HyperliquidSummary
   polymarket?: PolymarketSummary

@@ -33,7 +33,7 @@ import './App.css'
 import { appConfig, setupProblems } from './config'
 import { useBondMirrorState } from './hooks/useBondMirrorState'
 import { useWalletSession } from './hooks/useWalletSession'
-import { claimCompensation, createLeaderStrategy, stakeBond, subscribeFollower } from './services/wallet'
+import { claimCompensation, collectLeaderFees, createLeaderStrategy, stakeBond, subscribeFollower } from './services/wallet'
 import { supabaseStatus } from './services/supabase'
 import { formatReferenceUri, formatShortValue, summarizeEvidenceUri } from './services/evidence'
 import { dailyIdleYieldUsdc, estimateApyPercent, fetchUsycRate } from './services/usyc'
@@ -561,8 +561,11 @@ function LeaderCard({ strategy, selected, onSelect }: { strategy: StrategyView; 
       <div className="leader-stats">
         <Metric label="Bond" value={`${strategy.bondUsdc.toLocaleString()} USDC`} />
         <Metric label="Live return/PnL" value={formatMaybePercent(returnWindow)} trend={returnWindow && returnWindow > 0 ? 'up' : undefined} />
-        <Metric label="Violations" value={strategy.risk.violations.length.toString()} />
-        <Metric label="Copy Weight" value={`${strategy.risk.copyWeight}%`} />
+        <Metric label="Perf fee" value={strategy.performanceFeeBps > 0 ? `${(strategy.performanceFeeBps / 100).toFixed(1)}%` : 'None'} />
+        <Metric
+          label="Sub fee"
+          value={strategy.subscriptionFeeUsdc > 0n ? `${Number(formatUnits(strategy.subscriptionFeeUsdc, 6)).toLocaleString()} USDC` : 'Free'}
+        />
       </div>
       <div className="live-score">
         <strong>{strategy.risk.riskScore}</strong>
@@ -680,11 +683,15 @@ function LeadersPage({
   selectedStrategy,
   setSelectedId,
   isLoading,
+  account,
+  notify,
 }: {
   strategies: StrategyView[]
   selectedStrategy?: StrategyView
   setSelectedId: (id: string) => void
   isLoading: boolean
+  account?: Address
+  notify: Notify
 }) {
   return (
     <section className="workspace">
@@ -713,7 +720,7 @@ function LeadersPage({
           <LoadingPanel title="Loading leader profile" />
         </aside>
       ) : (
-        <LeaderProfile strategy={selectedStrategy} />
+        <LeaderProfile strategy={selectedStrategy} account={account} notify={notify} />
       )}
     </section>
   )
@@ -727,13 +734,23 @@ function useUsycRate() {
   return usdcPerUsyc
 }
 
-function LeaderProfile({ strategy }: { strategy?: StrategyView }) {
+function LeaderProfile({ strategy, account, notify }: { strategy?: StrategyView; account?: Address; notify?: Notify }) {
   const usdcPerUsyc = useUsycRate()
   const apyPercent = usdcPerUsyc !== null ? estimateApyPercent(usdcPerUsyc) : null
   const dailyYield = strategy && apyPercent !== null ? dailyIdleYieldUsdc(strategy.bondUsdc, apyPercent) : null
-  // Decay warning comes from Supabase score history — we use strategy.id.toString() as a proxy
-  // (in a full deploy, strategyDbId would come from Supabase; here we use contract id as fallback)
   const decay = useDecayWarning(strategy ? `contract-${strategy.id.toString()}` : undefined)
+  const isOwnStrategy = account && strategy && account.toLowerCase() === strategy.leader.toLowerCase()
+
+  async function handleCollectFees() {
+    if (!account || !strategy || !notify) return
+    try {
+      notify({ tone: 'info', title: 'Collecting fees', detail: 'Confirm the transaction in your wallet.', durationMs: 4200 })
+      const hash = await collectLeaderFees(account, strategy.id)
+      notify({ tone: 'success', title: 'Fees collected', detail: `Transaction ${formatHash(hash as string)} confirmed.`, durationMs: 6800 })
+    } catch (error) {
+      notify({ tone: 'error', title: 'Collect failed', detail: error instanceof Error ? error.message : 'Transaction could not be submitted.', durationMs: 7200 })
+    }
+  }
 
   return (
     <aside className="profile-panel">
@@ -766,6 +783,43 @@ function LeaderProfile({ strategy }: { strategy?: StrategyView }) {
           </div>
           <MirrorSignalFeed contractStrategyId={Number(strategy.id)} />
         </>
+      )}
+
+      {strategy && (
+        <div className="leader-earnings-panel">
+          <div className="earnings-head">
+            <CircleDollarSign size={16} />
+            <strong>Leader earnings</strong>
+            {isOwnStrategy && <span className="pill">your strategy</span>}
+          </div>
+          <div className="earnings-grid">
+            <div className="earnings-item">
+              <span>Performance fee</span>
+              <b>{strategy.performanceFeeBps > 0 ? `${(strategy.performanceFeeBps / 100).toFixed(1)}% of follower profits` : 'None'}</b>
+            </div>
+            <div className="earnings-item">
+              <span>Subscription fee</span>
+              <b>{strategy.subscriptionFeeUsdc > 0n ? `${Number(formatUnits(strategy.subscriptionFeeUsdc, 6)).toLocaleString()} USDC per follower` : 'Free to follow'}</b>
+            </div>
+            <div className="earnings-item">
+              <span>Total earned (all time)</span>
+              <b>{Number(formatUnits(strategy.totalFeesEarned, 6)).toLocaleString()} USDC</b>
+            </div>
+            <div className="earnings-item highlight">
+              <span>Available to collect</span>
+              <b>{Number(formatUnits(strategy.leaderFeeBalance, 6)).toLocaleString()} USDC</b>
+            </div>
+          </div>
+          {isOwnStrategy && strategy.leaderFeeBalance > 0n && (
+            <button className="collect-fees-btn" type="button" onClick={() => void handleCollectFees()}>
+              <CircleDollarSign size={15} />
+              Collect {Number(formatUnits(strategy.leaderFeeBalance, 6)).toLocaleString()} USDC
+            </button>
+          )}
+          {isOwnStrategy && strategy.leaderFeeBalance === 0n && (
+            <p className="earnings-empty">No fees pending — earnings accumulate as followers profit from your signals.</p>
+          )}
+        </div>
       )}
 
       <div className="mandate-summary">
@@ -1161,6 +1215,13 @@ function FollowPage({
                 ? `${strategy.mandate.maxLeverage}x mandate cap, ${maxLoss}% follower stop, ${strategy.mandate.markets.slice(0, 2).join(' / ')}`
                 : 'A live mandate is required before copy rules can execute.'}
             </span>
+            {strategy && (strategy.performanceFeeBps > 0 || strategy.subscriptionFeeUsdc > 0n) && (
+              <span className="fee-summary">
+                {strategy.subscriptionFeeUsdc > 0n && `${Number(formatUnits(strategy.subscriptionFeeUsdc, 6)).toLocaleString()} USDC paid on subscribe`}
+                {strategy.subscriptionFeeUsdc > 0n && strategy.performanceFeeBps > 0 && ' · '}
+                {strategy.performanceFeeBps > 0 && `${(strategy.performanceFeeBps / 100).toFixed(1)}% of profits as performance fee`}
+              </span>
+            )}
           </div>
         </div>
         <div className="action-grid">
@@ -1745,7 +1806,7 @@ function App() {
             path="/app/leaders"
             element={
               <AppLayout live={live} notify={notify}>
-                <LeadersPage strategies={strategies} selectedStrategy={selectedStrategy} setSelectedId={setSelectedId} isLoading={isInitialLoading} />
+                <LeadersPage strategies={strategies} selectedStrategy={selectedStrategy} setSelectedId={setSelectedId} isLoading={isInitialLoading} account={wallet.address} notify={notify} />
               </AppLayout>
             }
           />
