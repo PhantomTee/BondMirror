@@ -910,10 +910,18 @@ button,
 .leader-row.selected,
 .leader-row:hover { background: var(--sky); color: #ffffff; }
 
-.leader-row.selected .metric span,
-.leader-row.selected .metric strong,
-.leader-row:hover .metric span,
-.leader-row:hover .metric strong,
+/* When card is active/hovered: metric boxes go translucent so white text is readable */
+.leader-row.selected .leader-stats .metric,
+.leader-row:hover .leader-stats .metric {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: none;
+}
+.leader-row.selected .leader-stats .metric span,
+.leader-row.selected .leader-stats .metric strong,
+.leader-row:hover .leader-stats .metric span,
+.leader-row:hover .leader-stats .metric strong { color: #ffffff; }
+
 .leader-row.selected .source-line,
 .leader-row:hover .source-line { color: rgba(255, 255, 255, 0.85); }
 
@@ -948,6 +956,11 @@ button,
 
 /* === PROFILE === */
 .leader-stats { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); padding-top: 4px; }
+
+/* Metrics inside leader cards get a subtle inset look + readable label color */
+.leader-stats .metric { background: rgba(255, 255, 255, 0.6); box-shadow: none; }
+.leader-stats .metric span { color: var(--sky-strong); }
+.leader-stats .metric strong { color: var(--ink); font-size: 18px; }
 .profile-metrics,
 .portfolio-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
