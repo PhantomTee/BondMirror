@@ -890,13 +890,20 @@ button,
   color: inherit;
   cursor: pointer;
   display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 2fr) minmax(140px, 180px);
-  padding: 18px 22px;
+  gap: 14px 20px;
+  /* Row 1: identity + score badge   Row 2: metrics strip full-width */
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  padding: 20px 24px;
   text-align: left;
   transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
   width: 100%;
 }
+
+/* Place children into the 2-row grid */
+.leader-row .leader-main  { grid-column: 1; grid-row: 1; }
+.leader-row .live-score   { grid-column: 2; grid-row: 1; align-self: center; }
+.leader-row .leader-stats { grid-column: 1 / -1; grid-row: 2; }
 
 .leader-row:hover { transform: translateY(-1px); }
 
@@ -940,7 +947,7 @@ button,
 .pill.bad  { background: var(--bad);  }
 
 /* === PROFILE === */
-.leader-stats { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(110px, 1fr)); }
+.leader-stats { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); padding-top: 4px; }
 .profile-metrics,
 .portfolio-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
@@ -1373,7 +1380,11 @@ textarea:focus {
   .side-nav,
   .profile-panel { position: static; }
 
+  /* leader-row keeps 2-row layout but score badge goes below on tablet */
   .leader-row { grid-template-columns: 1fr; }
+  .leader-row .live-score { grid-column: 1; grid-row: 2; justify-self: start; }
+  .leader-row .leader-stats { grid-row: 3; }
+  .leader-stats { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ============================================================
