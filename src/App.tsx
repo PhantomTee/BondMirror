@@ -22,6 +22,7 @@ import {
   Sparkles,
   TrendingDown,
   TrendingUp,
+  Users,
   Wallet,
   X,
   Zap,
@@ -352,16 +353,16 @@ function LandingPage({ wallet }: { wallet: WalletSession }) {
       <section className="landing-section" id="get-started">
         <div className="role-picker">
           <button className="role-card" type="button" onClick={() => navigate('/app/leaders')}>
-            <span className="role-icon">📈</span>
+            <div className="role-icon"><Users size={28} /></div>
             <strong>I want to follow a trader</strong>
             <p>Browse leaders, check their live performance and bond size, subscribe and mirror their trades on-chain.</p>
-            <span className="role-cta">Browse Leaders →</span>
+            <span className="role-cta">Browse Leaders <ArrowRight size={14} /></span>
           </button>
           <button className="role-card" type="button" onClick={() => navigate('/app/publish')}>
-            <span className="role-icon">🏦</span>
+            <div className="role-icon"><Landmark size={28} /></div>
             <strong>I'm a trader, I want followers</strong>
             <p>Publish your strategy, stake a USDC bond as collateral, earn performance fees and subscription fees from followers.</p>
-            <span className="role-cta">Publish Strategy →</span>
+            <span className="role-cta">Publish Strategy <ArrowRight size={14} /></span>
           </button>
           {!isConnected && (
             <p className="role-hint">You can browse without a wallet. Connect one to subscribe or publish.</p>
@@ -377,7 +378,7 @@ function LandingPage({ wallet }: { wallet: WalletSession }) {
         </div>
         <div className="actor-flow">
           <article className="actor-card leader-actor">
-            <span className="actor-emoji">🧑‍💼</span>
+            <div className="actor-icon"><ShieldCheck size={26} /></div>
             <strong>Leader</strong>
             <p>Stakes a USDC bond into a smart contract and publishes a trading mandate — max leverage, allowed markets, drawdown limits.</p>
             <ul>
@@ -386,9 +387,9 @@ function LandingPage({ wallet }: { wallet: WalletSession }) {
               <li>Loses bond if mandate is broken</li>
             </ul>
           </article>
-          <div className="actor-arrow">→</div>
+          <div className="actor-arrow"><ArrowRight size={22} /></div>
           <article className="actor-card agent-actor">
-            <span className="actor-emoji">🤖</span>
+            <div className="actor-icon"><Bot size={26} /></div>
             <strong>AI Risk Agent</strong>
             <p>Monitors the leader's Hyperliquid positions every hour. Compares against the mandate. Warns before slashing.</p>
             <ul>
@@ -397,9 +398,9 @@ function LandingPage({ wallet }: { wallet: WalletSession }) {
               <li>Records violations on-chain</li>
             </ul>
           </article>
-          <div className="actor-arrow">→</div>
+          <div className="actor-arrow"><ArrowRight size={22} /></div>
           <article className="actor-card follower-actor">
-            <span className="actor-emoji">💰</span>
+            <div className="actor-icon"><Users size={26} /></div>
             <strong>Follower</strong>
             <p>Subscribes to mirror a leader's trades. If the leader breaks their mandate, the bond is slashed and distributed proportionally.</p>
             <ul>
@@ -411,21 +412,61 @@ function LandingPage({ wallet }: { wallet: WalletSession }) {
         </div>
       </section>
 
-      {/* vs old copy trading */}
-      <section className="landing-section split">
-        <div>
+      {/* Comparison table */}
+      <section className="landing-section">
+        <div className="section-title">
           <span className="eyebrow">What makes it different</span>
           <h2>The trader has real skin in the game.</h2>
         </div>
-        <div className="comparison-table">
-          <div>
-            <span>Old copy trading</span>
-            <p>Leaders earn subscription fees regardless of performance. Bad signals cost followers money — leaders nothing.</p>
+        <div className="compare-table">
+          <div className="compare-header">
+            <div className="compare-topic" />
+            <div className="compare-col bad">Old copy trading</div>
+            <div className="compare-col good">BondMirror</div>
           </div>
-          <div>
-            <span>BondMirror</span>
-            <p>Leaders lock USDC. If they violate their mandate, the on-chain contract slashes their bond and pays followers instantly.</p>
-          </div>
+          {[
+            ['Leader accountability',   'No financial stake — leaders earn fees regardless of outcome.',      'Leaders post a USDC bond that gets slashed if they violate their own rules.'],
+            ['Follower protection',      'Followers absorb all downside. No compensation for bad signals.',    'Slashed bond is distributed proportionally to affected followers on-chain.'],
+            ['Performance verification','Self-reported or unverified. Followers trust marketing claims.',      'AI agent monitors live Hyperliquid positions and records violations on-chain.'],
+            ['Fee structure',           'Leaders earn unconditionally. Bad performance costs followers only.', 'Leaders earn performance fees only when followers profit. Incentives aligned.'],
+            ['Transparency',            'Trade history is opaque or delayed. No verifiable mandate.',          'Mandate, bond, attestations, and slash history are all public on Arc.'],
+          ].map(([topic, bad, good]) => (
+            <div className="compare-row" key={topic}>
+              <div className="compare-topic">{topic}</div>
+              <div className="compare-col bad"><X size={14} />{bad}</div>
+              <div className="compare-col good"><CheckCircle2 size={14} />{good}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Why Arc? */}
+      <section className="landing-section">
+        <div className="section-title">
+          <span className="eyebrow">Infrastructure</span>
+          <h2>Why Arc?</h2>
+        </div>
+        <div className="why-arc-grid">
+          <article className="why-arc-card">
+            <div className="why-arc-icon"><Zap size={22} /></div>
+            <strong>Sub-second settlement</strong>
+            <p>Arc finalises blocks in under a second. Slash distributions and compensation claims land instantly — no waiting, no bridges.</p>
+          </article>
+          <article className="why-arc-card">
+            <div className="why-arc-icon"><CircleDollarSign size={22} /></div>
+            <strong>Native Circle USDC</strong>
+            <p>Bonds, fees, and payouts are all denominated in Circle's native USDC on Arc — no wrapped tokens, no bridge risk, no price exposure.</p>
+          </article>
+          <article className="why-arc-card">
+            <div className="why-arc-icon"><LockKeyhole size={22} /></div>
+            <strong>EVM-compatible contracts</strong>
+            <p>BondMirrorBond is a standard Solidity contract on Arc. Any EVM wallet connects. Any developer can verify or fork the logic.</p>
+          </article>
+          <article className="why-arc-card">
+            <div className="why-arc-icon"><Activity size={22} /></div>
+            <strong>Always-on execution</strong>
+            <p>The risk agent runs hourly on GitHub Actions. Attestations and slashes execute without any manual intervention or trusted third party.</p>
+          </article>
         </div>
       </section>
     </>
